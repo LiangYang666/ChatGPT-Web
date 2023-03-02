@@ -227,6 +227,12 @@
             }
         });
     });
+    $("#textarea").keydown(function (e) {
+        if (e.keyCode == 13 && !e.shiftKey) {
+            e.preventDefault();
+            $("#send-btn").click();
+        }
+    });
     $('#cz-btn').click(function () {
 
         $.get("/resetHistory", function (data) {
