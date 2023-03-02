@@ -1,4 +1,4 @@
-# 使用最新ChatGPT最新API创建的聊天页面，与官网的ChatGPT效果一致
+# 使用最新ChatGPT最新API创建的聊天页面，模型回复效果与官网的ChatGPT一致
 # 注册openai后送18美元，3个月内使用，API调用很便宜，0.2美分1000 token
 
 ## 使用前提
