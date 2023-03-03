@@ -12,18 +12,18 @@
 1. 执行`pip install openai` `pip install flask`安装必要包
 2. 打开`flask_main.py`文件
 3. 将`openai.api_key`填写为自己的api key
-4. 将os.environ['HTTP_PROXY']和os.environ['HTTPS_PROXY']设置成本机代理
-5. 执行`python flask_main.py`运行程序
+4. 将os.environ['HTTP_PROXY']和os.environ['HTTPS_PROXY']设置成代理，注意端口设置
+5. 执行`python flask_main.py`运行程序.若程序中未指定apikey还可以执行`python flask_main.py XXXX`来指定，其中XXXX为你的apikey
 6. 打开本地浏览器访问`127.0.0.1:5000`
 
 
 ## 介绍
-- 开启程序后进入如下页面
+- 开启程序后进入如下页面  
 ![image](https://user-images.githubusercontent.com/38237931/222455785-96e6f077-5ee3-4a3b-b055-1f1c59c1d6df.png)  
 - 默认单聊模式，即每次发送都是仅对于该提问回答，可点击切换为串聊模式，chatgpt将会联系上下文(之前的对话)回复你，但意味着花费会更多money  
 - 用python写一个冒泡算法试试看，回车发送，shift+回车换行  
 ![image](https://user-images.githubusercontent.com/38237931/222457039-71097e87-3647-47f1-99fc-7e3f5bcc694c.png)  
-- 问用C语言呢？会联系上下文回答，点击重置，将会删除上下文信息，重新开始新的串聊
+- 问用C语言呢？会联系上下文回答，点击重置，将会删除上下文信息，重新开始新的串聊  
 ![image](https://user-images.githubusercontent.com/38237931/222457182-4063b4eb-2544-4e48-a264-30332b537e5c.png)  
 
 ## TODO List
