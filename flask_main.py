@@ -1,6 +1,7 @@
-from flask import Flask,  render_template, request
+from flask import Flask, render_template, request
 import os
 import openai
+import sys
 
 app = Flask(__name__)
 
@@ -20,8 +21,8 @@ def get_chat_response(message):
         messages_history.clear()
     messages_history.append({"role": "user", "content": message})
     completion = openai.ChatCompletion.create(
-      model="gpt-3.5-turbo",
-      messages=messages_history
+        model="gpt-3.5-turbo",
+        messages=messages_history
     )
     if completion.get("error"):
         return "出错"
@@ -31,15 +32,17 @@ def get_chat_response(message):
 
     return data
 
+
 # 进入主页
-@app.route('/' ,methods=['GET','POST'])
+@app.route('/', methods=['GET', 'POST'])
 def index():
     global messages_history, chat_with_history
     messages_history.clear()
     chat_with_history = False
     return render_template('index.html')
 
-@app.route('/returnMessage',methods=['GET','POST'])
+
+@app.route('/returnMessage', methods=['GET', 'POST'])
 def returnMessage():
     send_message = request.values.get("send_message")
     print("用户发送的消息：" + send_message)
@@ -58,7 +61,8 @@ def returnMessage():
 
     return content
 
-@app.route('/changeModeDl',methods=['GET'])
+
+@app.route('/changeModeDl', methods=['GET'])
 def changeModeDl():
     global chat_with_history
     chat_with_history = True
@@ -66,7 +70,7 @@ def changeModeDl():
     return "0"
 
 
-@app.route('/changeModeCl',methods=['GET'])
+@app.route('/changeModeCl', methods=['GET'])
 def changeModeCl():
     global chat_with_history
     chat_with_history = False
@@ -74,7 +78,7 @@ def changeModeCl():
     return "1"
 
 
-@app.route('/resetHistory',methods=['GET'])
+@app.route('/resetHistory', methods=['GET'])
 def resetHistory():
     global messages_history
     messages_history.clear()
@@ -83,4 +87,10 @@ def resetHistory():
 
 
 if __name__ == '__main__':
+    if len(openai.api_key) == 0 and len(sys.argv) == 1:
+        # 退出程序
+        print("请在openai官网注册账号，获取并填写api_key")
+        exit()
+    else:
+        openai.api_key = sys.argv[1]
     app.run(host="0.0.0.0", port=5000, debug=True)
