@@ -34,6 +34,9 @@ def get_chat_response(message):
 # 进入主页
 @app.route('/' ,methods=['GET','POST'])
 def index():
+    global messages_history, chat_with_history
+    messages_history.clear()
+    chat_with_history = False
     return render_template('index.html')
 
 @app.route('/returnMessage',methods=['GET','POST'])
