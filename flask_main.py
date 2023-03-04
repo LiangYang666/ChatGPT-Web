@@ -87,10 +87,14 @@ def resetHistory():
 
 
 if __name__ == '__main__':
-    if len(openai.api_key) == 0 and len(sys.argv) == 1:
-        # 退出程序
-        print("请在openai官网注册账号，获取并填写api_key")
-        exit()
+
+    if len(sys.argv) == 1:
+        if len(openai.api_key) == 0:
+            # 退出程序
+            print("请在openai官网注册账号，获取api_key填写至程序内或命令行参数中")
+            exit()
     else:
         openai.api_key = sys.argv[1]
+        print("使用命令行参数作为api_key")
+
     app.run(host="0.0.0.0", port=5000, debug=True)
