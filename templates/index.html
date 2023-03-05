@@ -198,6 +198,25 @@
 
 </body>
 <script>
+{#    加载历史聊天记录#}
+    $.ajax({
+        url: "/loadHistory",
+        type: "Get",
+        dataType: "json",
+        success: function (data) {
+            console.log(data);
+            var html = "";
+            for (var i = 0; i < data.length; i++) {
+                if (data[i].role == "user") {
+                    html += '<div class="item item-right"><div class="bubble bubble-right">' + data[i].content + '</div><div class="avatar"><img src="./static/people.jpg" /></div></div>';
+                } else {
+                    html += '<div class="item item-left"><div class="avatar"><img src="./static/chatgpt.png" /></div><div class="bubble bubble-left">' + data[i].content + '</div></div>';
+                }
+            }
+            $(".content").append(html);
+            $(".content").scrollTop($(".content")[0].scrollHeight);
+        }
+    });
     $("#send-btn").click(function () {
         console.log("click")
         var text = $("#textarea").val();
@@ -244,7 +263,7 @@
             $.get("/changeModeContinuous", function (data) {
                 console.log(data);
             });
-            $("#cl-btn").text("当前为对话普通");
+            $("#cl-btn").text("当前为连续对话");
         } else {
             $.get("/changeModeNormal", function (data) {
                 console.log(data);
