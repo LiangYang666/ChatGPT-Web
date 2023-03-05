@@ -174,7 +174,12 @@
         }
 
     </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='editor.md/css/editormd.preview.min.css') }}" />
     <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='editor.md/lib/marked.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='editor.md/lib/prettify.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='editor.md/editormd.min.js') }}"></script>
+
 
 </head>
 <body>
@@ -238,11 +243,27 @@
                 "send_message": text
             },
             type: "Post",
-            dataType: "text",
+            dataType: "json",
             success: function (data) {
-                var html = '<div class="item item-left"><div class="avatar"><img src="./static/chatgpt.png" /></div><div class="bubble bubble-left">' + data + '</div></div>';
+
+                var html = '<div class="item item-left"><div class="avatar"><img src="./static/chatgpt.png" /></div><div class="bubble bubble-left"><div id='+ data.content_id +'></div></div></div>';
+
                 $(".content").append(html);
+                editormd.markdownToHTML(data.content_id, {
+
+                    markdown: data.content,
+                    htmlDecode: "style,script,iframe",
+                    tocm: true,
+                    emoji: true,
+                    taskList: true,
+                    tex: true,
+                    flowChart: true,
+                    sequenceDiagram: true,
+                    codeFold: true
+                });
+
                 $(".content").scrollTop($(".content")[0].scrollHeight);
+
             }
         });
     });

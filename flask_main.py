@@ -107,18 +107,21 @@ def return_message():
     content = handle_messages_get_response(send_message, messages_history, chat_with_history)
     session['messages_history'] = messages_history
     # 解析换行符和空格以及tab制表符到html
-    content = content.replace("\n", "<br>")
-    content = content.replace(" ", "&nbsp;")
-    # content = content.replace("\t", "&nbsp;&nbsp;&nbsp;&nbsp;")
-
-    # 按顺序遍历将代码开始标识符```转换为<pre>，结束标识符```转换为</pre>，两个pre代码框内灰白色
-    content_list = content.split("```")
-    for i in range(len(content_list)):
-        if i % 2 == 1:
-            content_list[i] = "<pre>" + content_list[i] + "</pre>"
-    content = "".join(content_list)
-
-    return content
+    # content = content.replace("\n", "<br>")
+    # content = content.replace(" ", "&nbsp;")
+    # # content = content.replace("\t", "&nbsp;&nbsp;&nbsp;&nbsp;")
+    #
+    # # 按顺序遍历将代码开始标识符```转换为<pre>，结束标识符```转换为</pre>，两个pre代码框内灰白色
+    # content_list = content.split("```")
+    # for i in range(len(content_list)):
+    #     if i % 2 == 1:
+    #         content_list[i] = "<pre>" + content_list[i] + "</pre>"
+    # content = "".join(content_list)
+    data = {
+        "content": content,
+        "content_id": f"content_id{len(messages_history) - 1}"
+    }
+    return data
 
 
 @app.route('/changeModeNormal', methods=['GET'])
