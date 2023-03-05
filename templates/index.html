@@ -163,23 +163,29 @@
             background:rgba(0,0,0,0);
             -webkit-box-shadow:inset006pxrgba(0,0,0,0.5);
         }
-        pre {
-            background-color: #CCC5B9;
-            border: 1px solid #999;
-            border-radius: 3px;
-            display: block;
-            width: 100%;
-            margin: 0 0 0 0px;
-            white-space: pre-wrap;
+        {#markdown列表样式#}
+        .markdown ol, .markdown ul {
+            padding-left: 1.5em;
+        }
+        .markdown ol {
+            list-style-type: decimal;
+        }
+        .markdown ul {
+            list-style-type: disc;
+        }
+
+        {#markdown代码样式 包含行号#}
+        .markdown pre {
+            padding: 0.5em;
+            margin: 0.5em 0;
+            overflow: auto;
+            background-color: #f5f5f5;
+            border-radius: 4px;
         }
 
     </style>
-    <link rel="stylesheet" href="{{ url_for('static', filename='editor.md/css/editormd.preview.min.css') }}" />
     <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='editor.md/lib/marked.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='editor.md/lib/prettify.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='editor.md/editormd.min.js') }}"></script>
-
+    <script src="{{ url_for('static', filename='marked.min.js') }}"></script>
 
 </head>
 <body>
@@ -203,7 +209,6 @@
 
 </body>
 <script>
-{#    加载历史聊天记录#}
     $.ajax({
         url: "/loadHistory",
         type: "Get",
@@ -215,13 +220,22 @@
                 if (data[i].role == "user") {
                     html += '<div class="item item-right"><div class="bubble bubble-right">' + data[i].content + '</div><div class="avatar"><img src="./static/people.jpg" /></div></div>';
                 } else {
-                    html += '<div class="item item-left"><div class="avatar"><img src="./static/chatgpt.png" /></div><div class="bubble bubble-left">' + data[i].content + '</div></div>';
+                    html += '<div class="item item-left"><div class="avatar"><img src="./static/chatgpt.png" /></div><div class="bubble bubble-left markdown">' + marked.marked(data[i].content) + '</div></div>';
                 }
             }
             $(".content").append(html);
             $(".content").scrollTop($(".content")[0].scrollHeight);
         }
     });
+
+    var markdown_text = "# ChatGPT\n## assistant\n```python\na=1+2\nprint(a)\n```\n1. test1\n2. test2";
+    var html = marked.marked(markdown_text);
+    console.log(html);
+    html = '<div class="item item-left"><div class="avatar"><img src="./static/chatgpt.png" /></div><div class="bubble bubble-left markdown">' + html + '</div></div>';
+    $(".content").append(html);
+    $(".content").scrollTop($(".content")[0].scrollHeight);
+
+
     $("#send-btn").click(function () {
         console.log("click")
         var text = $("#textarea").val();
@@ -246,22 +260,8 @@
             dataType: "json",
             success: function (data) {
 
-                var html = '<div class="item item-left"><div class="avatar"><img src="./static/chatgpt.png" /></div><div class="bubble bubble-left"><div id='+ data.content_id +'></div></div></div>';
-
+                var html = '<div class="item item-left"><div class="avatar"><img src="./static/chatgpt.png" /></div><div class="bubble bubble-left markdown">' + marked.marked(data.content) + '</div></div>';
                 $(".content").append(html);
-                editormd.markdownToHTML(data.content_id, {
-
-                    markdown: data.content,
-                    htmlDecode: "style,script,iframe",
-                    tocm: true,
-                    emoji: true,
-                    taskList: true,
-                    tex: true,
-                    flowChart: true,
-                    sequenceDiagram: true,
-                    codeFold: true
-                });
-
                 $(".content").scrollTop($(".content")[0].scrollHeight);
 
             }
