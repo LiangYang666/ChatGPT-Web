@@ -181,14 +181,14 @@
     <div class="container">
         <div class="content">
             <div class="item item-center"><span>昨天 13:14</span></div>
-            <div class="item item-center"><span>你已添加了chatgpt，现在可以开始聊天了。</span></div>
-            <div class="item item-left"><div class="avatar"><img src="./static/chatgpt.png" /></div><div class="bubble bubble-left">我是您的小助手</div></div>
+            <div class="item item-center"><span>你已添加了ChatGPT，现在可以开始聊天了。</span></div>
+            <div class="item item-left"><div class="avatar"><img src="./static/chatgpt.png" /></div><div class="bubble bubble-left">ChatGPT网页版<br>code from https://github.com/LiangYang666/ChatGPT-Web</div></div>
             <div class="item item-center"><span>现在开始</span></div>
         </div>
         <div class="input-area">
             <textarea name="text" id="textarea"></textarea>
             <div class="button-area">
-                <button id="cl-btn" class="talk_sub">当前为单聊模式</button>
+                <button id="cl-btn" class="talk_sub">当前为普通对话</button>
                 <button id="cz-btn" class="talk_sub">重 置</button>
                 <button id="send-btn" class="talk_sub">发 送</button>
 
@@ -240,16 +240,16 @@
         });
     });
     $('#cl-btn').click(function () {
-        if ($("#cl-btn").text() == "当前为串聊模式") {
-            $.get("/changeModeCl", function (data) {
+        if ($("#cl-btn").text() === "当前为普通对话") {
+            $.get("/changeModeContinuous", function (data) {
                 console.log(data);
             });
-            $("#cl-btn").text("当前为单聊模式");
+            $("#cl-btn").text("当前为对话普通");
         } else {
-            $.get("/changeModeDl", function (data) {
+            $.get("/changeModeNormal", function (data) {
                 console.log(data);
             });
-            $("#cl-btn").text("当前为串聊模式");
+            $("#cl-btn").text("当前为连续对话");
         }
     });
 </script>

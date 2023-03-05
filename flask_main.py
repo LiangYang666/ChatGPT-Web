@@ -12,11 +12,15 @@ openai.api_key = ""
 
 
 chat_with_history = False
-
 messages_history = []
 
 
 def get_chat_response(message):
+    """
+    使用ChatGPT API获取回复
+    :param message: 用户输入的消息
+    :return: 回复的消息
+    """
     if not chat_with_history:
         messages_history.clear()
     messages_history.append({"role": "user", "content": message})
@@ -36,6 +40,10 @@ def get_chat_response(message):
 # 进入主页
 @app.route('/', methods=['GET', 'POST'])
 def index():
+    """
+    主页
+    :return: 主页
+    """
     global messages_history, chat_with_history
     messages_history.clear()
     chat_with_history = False
@@ -43,7 +51,11 @@ def index():
 
 
 @app.route('/returnMessage', methods=['GET', 'POST'])
-def returnMessage():
+def return_message():
+    """
+    获取用户发送的消息，调用get_chat_response()获取回复，返回回复，用于更新聊天框
+    :return:
+    """
     send_message = request.values.get("send_message")
     print("用户发送的消息：" + send_message)
     content = get_chat_response(send_message)
@@ -62,24 +74,24 @@ def returnMessage():
     return content
 
 
-@app.route('/changeModeDl', methods=['GET'])
-def changeModeDl():
+@app.route('/changeModeNormal', methods=['GET'])
+def change_mode_normal():
     global chat_with_history
     chat_with_history = True
-    print("开启串聊")
+    print("开启普通对话")
     return "0"
 
 
-@app.route('/changeModeCl', methods=['GET'])
-def changeModeCl():
+@app.route('/changeModeContinuous', methods=['GET'])
+def change_mode_continuous():
     global chat_with_history
     chat_with_history = False
-    print("开启单聊")
+    print("开启连续对话")
     return "1"
 
 
 @app.route('/resetHistory', methods=['GET'])
-def resetHistory():
+def reset_history():
     global messages_history
     messages_history.clear()
     print("清空上下文")
