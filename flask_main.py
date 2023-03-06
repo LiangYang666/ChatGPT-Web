@@ -15,7 +15,7 @@ os.environ['HTTP_PROXY'] = 'socks5://127.0.0.1:7890'
 os.environ['HTTPS_PROXY'] = 'socks5://127.0.0.1:7890'
 openai.api_key = os.getenv("OPENAI_API_KEY")        # 从环境变量中获取api_key,或直接设置api_key
 
-chat_context_number_max = 5         # 连续对话模式下的上下文最大数量
+chat_context_number_max = 5     # 连续对话模式下的上下文最大数量
 lock = threading.Lock()         # 用于线程锁
 
 
@@ -127,6 +127,7 @@ def load_messages():
     else:
         user_info = get_user_info(session.get('user_id'))
         messages_history = user_info['messages_history']
+    print("重新加载聊天记录")
     return messages_history
 
 
@@ -138,8 +139,8 @@ def return_message():
     """
     check_session(session)
     send_message = request.values.get("send_message")
-    print("用户发送的消息：" + send_message)
     if session.get('user_id') is None:
+        print("当前会话为首次请求，用户输入:\t", send_message)
         if send_message.strip().startswith("new_id:"):
             user_id = send_message.split(":")[1]
             session['user_id'] = user_id
@@ -159,12 +160,14 @@ def return_message():
                 # 重定向到index
                 return {"redirect": "/"}
     else:
+        print(f"用户({session.get('user_id')})发送消息:{send_message}")
         user_info = get_user_info(session.get('user_id'))
         messages_history = user_info['messages_history']
         chat_with_history = user_info['chat_with_history']
         if chat_with_history:
             user_info['have_chat_context'] += 1
         content = handle_messages_get_response(send_message, messages_history, user_info['have_chat_context'],  chat_with_history)
+        print(f"用户({session.get('user_id')})得到的回复消息:{content[:40]}...")
         if chat_with_history:
             user_info['have_chat_context'] += 1
         data = {
@@ -185,7 +188,7 @@ async def save_all_user_dict():
     lock.acquire()
     with open("all_user_dict.pkl", "wb") as f:
         pickle.dump(all_user_dict, f)
-    print("all_user_dict.pkl存储成功")
+    # print("all_user_dict.pkl存储成功")
     lock.release()
 
 
@@ -227,8 +230,6 @@ def change_mode_continuous():
     开启连续对话模式
     :return:
     """
-    global chat_context_now
-    chat_context_now = 0
     check_session(session)
     if not check_user_bind(session):
         return {"code": -1, "msg": "请先创建或输入已有用户id"}
