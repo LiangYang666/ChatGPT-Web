@@ -197,8 +197,6 @@
         <div class="content">
             <div class="item item-center"><span>昨天 13:14</span></div>
             <div class="item item-center"><span>你已添加了ChatGPT，现在可以开始聊天了。</span></div>
-{#            <div class="item item-left"><div class="avatar"><img src="./static/chatgpt.png" /></div><div class="bubble bubble-left">ChatGPT网页版<br>code from https://github.com/LiangYang666/ChatGPT-Web</div></div>#}
-{#            <div class="item item-center"><span>现在开始</span></div>#}
         </div>
         <div class="input-area">
             <textarea name="text" id="textarea"></textarea>
@@ -304,12 +302,24 @@
     $('#cl-btn').click(function () {
         if ($("#cl-btn").text() === "当前为普通对话") {
             $.get("/changeModeContinuous", function (data) {
-                console.log(data);
+                if(data.code===-1){
+                    alert(data.msg)
+                }  else {
+                    var html = '<div class="item item-center"><span>切换至连续对话模式</span></div>'
+                    $(".content").append(html);
+                    $(".content").scrollTop($(".content")[0].scrollHeight);
+                }
             });
             $("#cl-btn").text("当前为连续对话");
         } else {
             $.get("/changeModeNormal", function (data) {
-                console.log(data);
+                if(data.code===-1){
+                    alert(data.msg)
+                }  else {
+                    var html = '<div class="item item-center"><span>切换至普通对话模式</span></div>'
+                    $(".content").append(html);
+                    $(".content").scrollTop($(".content")[0].scrollHeight);
+                }
             });
             $("#cl-btn").text("当前为普通对话");
         }

@@ -214,11 +214,11 @@ def change_mode_normal():
     """
     check_session(session)
     if not check_user_bind(session):
-        return "-1"
+        return {"code": -1, "msg": "请先创建或输入已有用户id"}
     user_info = get_user_info(session.get('user_id'))
     user_info['chat_with_history'] = False
     print("开启普通对话")
-    return "0"
+    return {"code": 0, "content": "开启普通对话"}
 
 
 @app.route('/changeModeContinuous', methods=['GET'])
@@ -231,11 +231,11 @@ def change_mode_continuous():
     chat_context_now = 0
     check_session(session)
     if not check_user_bind(session):
-        return "-1"
+        return {"code": -1, "msg": "请先创建或输入已有用户id"}
     user_info = get_user_info(session.get('user_id'))
     user_info['chat_with_history'] = True
     print("开启连续对话")
-    return "1"
+    return {"code": 0, "content": "开启连续对话"}
 
 
 @app.route('/deleteHistory', methods=['GET'])
@@ -246,7 +246,7 @@ def reset_history():
     """
     check_session(session)
     if not check_user_bind(session):
-        return "-1"
+        return {"code": -1, "msg": "请先创建或输入已有用户id"}
     user_info = get_user_info(session.get('user_id'))
     user_info['messages_history'] = [user_info['messages_history'][0]]
     print("清空历史记录")
