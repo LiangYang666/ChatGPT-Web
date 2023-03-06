@@ -122,6 +122,10 @@
             outline:none;
             resize:none;
         }
+        button{
+            margin-left: 10px;
+            margin-right: 10px;
+        }
         .button-area{
             display: flex;
             height: 40px;
@@ -138,7 +142,7 @@
             float: right;
             cursor: pointer;
         }
-        .button-area #cl-btn{
+        .button-area #cl-btn, .button-area #cz-btn {
             width: 120px;
         }
         .button-area button:hover{
@@ -199,8 +203,8 @@
         <div class="input-area">
             <textarea name="text" id="textarea"></textarea>
             <div class="button-area">
+                <button id="cz-btn" class="talk_sub">删除聊天记录</button>
                 <button id="cl-btn" class="talk_sub">当前为普通对话</button>
-                <button id="cz-btn" class="talk_sub">重 置</button>
                 <button id="send-btn" class="talk_sub">发 送</button>
 
             </div>
@@ -227,15 +231,6 @@
             $(".content").scrollTop($(".content")[0].scrollHeight);
         }
     });
-
-    var markdown_text = "# ChatGPT\n## assistant\n```python\na=1+2\nprint(a)\n```\n1. test1\n2. test2";
-    var html = marked.marked(markdown_text);
-    console.log(html);
-    html = '<div class="item item-left"><div class="avatar"><img src="./static/chatgpt.png" /></div><div class="bubble bubble-left markdown">' + html + '</div></div>';
-    $(".content").append(html);
-    $(".content").scrollTop($(".content")[0].scrollHeight);
-
-
     $("#send-btn").click(function () {
         console.log("click")
         var text = $("#textarea").val();
@@ -275,9 +270,10 @@
     });
     $('#cz-btn').click(function () {
 
-        $.get("/resetHistory", function (data) {
+        $.get("/deleteHistory", function (data) {
             console.log(data);
         });
+        window.location.href = "/";
     });
     $('#cl-btn').click(function () {
         if ($("#cl-btn").text() === "当前为普通对话") {
