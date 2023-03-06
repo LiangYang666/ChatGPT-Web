@@ -15,7 +15,7 @@ os.environ['HTTP_PROXY'] = 'socks5://127.0.0.1:7890'
 os.environ['HTTPS_PROXY'] = 'socks5://127.0.0.1:7890'
 openai.api_key = os.getenv("OPENAI_API_KEY")        # 从环境变量中获取api_key,或直接设置api_key
 
-chat_context_number = 5         # 连续对话模式下的上下文数量
+chat_context_number_max = 5         # 连续对话模式下的上下文最大数量
 lock = threading.Lock()         # 用于线程锁
 
 
@@ -37,7 +37,7 @@ def get_response_from_ChatGPT_API(message_context):
     return data
 
 
-def handle_messages_get_response(message, message_history, chat_with_history):
+def handle_messages_get_response(message, message_history, have_chat_context, chat_with_history):
     """
     处理用户发送的消息，获取回复
     :param message:
@@ -48,22 +48,20 @@ def handle_messages_get_response(message, message_history, chat_with_history):
     message_history.append({"role": "user", "content": message})
     message_context = []
     if chat_with_history:
-        if len(message_history) > chat_context_number:
-            message_context = message_history[-chat_context_number:]
-        else:
-            message_context = message_history
+        num = min([len(message_history), chat_context_number_max, have_chat_context])
+        message_context = message_history[-num:]
     else:
         message_context.append(message_history[-1])
 
     response = get_response_from_ChatGPT_API(message_context)
     message_history.append({"role": "assistant", "content": response})
     # 换行打印messages_history
-    print("message_history:")
-    for i, message in enumerate(message_history):
-        if message['role'] == 'user':
-            print(f"\t{i}:\t{message['role']}:\t\t{message['content']}")
-        else:
-            print(f"\t{i}:\t{message['role']}:\t{message['content']}")
+    # print("message_history:")
+    # for i, message in enumerate(message_history):
+    #     if message['role'] == 'user':
+    #         print(f"\t{i}:\t{message['role']}:\t\t{message['content']}")
+    #     else:
+    #         print(f"\t{i}:\t{message['role']}:\t{message['content']}")
 
     return response
 
@@ -146,7 +144,7 @@ def return_message():
             user_id = send_message.split(":")[1]
             session['user_id'] = user_id
             lock.acquire()
-            all_user_dict.put(user_id, {"chat_with_history": False, "messages_history": [{"role": "assistant", "content": f"当前对话的用户id为 `{user_id}`"}]})        # 默认普通对话
+            all_user_dict.put(user_id, {"chat_with_history": False, "have_chat_context": 0,  "messages_history": [{"role": "assistant", "content": f"当前对话的用户id为 `{user_id}`"}]})        # 默认普通对话
             lock.release()
             print("创建新的用户id:\t", user_id)
             return {"content": "创建新的用户id成功，可以开始对话了"}
@@ -164,7 +162,11 @@ def return_message():
         user_info = get_user_info(session.get('user_id'))
         messages_history = user_info['messages_history']
         chat_with_history = user_info['chat_with_history']
-        content = handle_messages_get_response(send_message, messages_history, chat_with_history)
+        if chat_with_history:
+            user_info['have_chat_context'] += 1
+        content = handle_messages_get_response(send_message, messages_history, user_info['have_chat_context'],  chat_with_history)
+        if chat_with_history:
+            user_info['have_chat_context'] += 1
         data = {
             "content": content,
             "content_id": f"content_id{len(messages_history) - 1}"
@@ -185,6 +187,23 @@ async def save_all_user_dict():
         pickle.dump(all_user_dict, f)
     print("all_user_dict.pkl存储成功")
     lock.release()
+
+
+@app.route('/getMode', methods=['GET'])
+def get_mode():
+    """
+    获取当前对话模式
+    :return:
+    """
+    check_session(session)
+    if not check_user_bind(session):
+        return "normal"
+    user_info = get_user_info(session.get('user_id'))
+    chat_with_history = user_info['chat_with_history']
+    if chat_with_history:
+        return {"mode": "continuous"}
+    else:
+        return {"mode": "normal"}
 
 
 @app.route('/changeModeNormal', methods=['GET'])
@@ -208,6 +227,8 @@ def change_mode_continuous():
     开启连续对话模式
     :return:
     """
+    global chat_context_now
+    chat_context_now = 0
     check_session(session)
     if not check_user_bind(session):
         return "-1"

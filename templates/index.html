@@ -220,6 +220,19 @@
     $(".content").append(html);
     $(".content").scrollTop($(".content")[0].scrollHeight);
 
+    $.ajax({
+        url: "/getMode",
+        type: "Get",
+        dataType: "json",
+        success: function (data) {
+            console.log(data);
+            if (data.mode === "normal") {
+                $("#cl-btn").text("当前为普通对话");
+            } else {
+                $("#cl-btn").text("当前为连续对话");
+            }
+        }
+    })
 
     $.ajax({
         url: "/loadHistory",
@@ -282,7 +295,7 @@
     $('#cz-btn').click(function () {
         {#弹窗提醒是否确认删除#}
         if (confirm("确认删除所有聊天记录吗？")) {
-            $.get("/clearHistory", function (data) {
+            $.get("/deleteHistory", function (data) {
                 console.log(data);
             });
             window.location.reload()
@@ -298,7 +311,7 @@
             $.get("/changeModeNormal", function (data) {
                 console.log(data);
             });
-            $("#cl-btn").text("当前为连续对话");
+            $("#cl-btn").text("当前为普通对话");
         }
     });
 </script>
