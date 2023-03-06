@@ -20,6 +20,11 @@ lock = threading.Lock()         # 用于线程锁
 
 
 def get_response_from_ChatGPT_API(message_context):
+    """
+    从ChatGPT API获取回复
+    :param message_context: 上下文
+    :return: 回复
+    """
     try:
         completion = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
