@@ -197,8 +197,8 @@
         <div class="content">
             <div class="item item-center"><span>昨天 13:14</span></div>
             <div class="item item-center"><span>你已添加了ChatGPT，现在可以开始聊天了。</span></div>
-            <div class="item item-left"><div class="avatar"><img src="./static/chatgpt.png" /></div><div class="bubble bubble-left">ChatGPT网页版<br>code from https://github.com/LiangYang666/ChatGPT-Web</div></div>
-            <div class="item item-center"><span>现在开始</span></div>
+{#            <div class="item item-left"><div class="avatar"><img src="./static/chatgpt.png" /></div><div class="bubble bubble-left">ChatGPT网页版<br>code from https://github.com/LiangYang666/ChatGPT-Web</div></div>#}
+{#            <div class="item item-center"><span>现在开始</span></div>#}
         </div>
         <div class="input-area">
             <textarea name="text" id="textarea"></textarea>
@@ -213,6 +213,14 @@
 
 </body>
 <script>
+    var markdown_text = "## ChatGPT 网页版\n#### code from\n[https://github.com/LiangYang666/ChatGPT-Web](https://github.com/LiangYang666/ChatGPT-Web)";
+    var html = marked.marked(markdown_text);
+    console.log(html);
+    html = '<div class="item item-left"><div class="avatar"><img src="./static/chatgpt.png" /></div><div class="bubble bubble-left markdown">' + html + '</div></div>';
+    $(".content").append(html);
+    $(".content").scrollTop($(".content")[0].scrollHeight);
+
+
     $.ajax({
         url: "/loadHistory",
         type: "Get",
@@ -254,10 +262,13 @@
             type: "Post",
             dataType: "json",
             success: function (data) {
-
-                var html = '<div class="item item-left"><div class="avatar"><img src="./static/chatgpt.png" /></div><div class="bubble bubble-left markdown">' + marked.marked(data.content) + '</div></div>';
-                $(".content").append(html);
-                $(".content").scrollTop($(".content")[0].scrollHeight);
+                if (data['redirect']!=undefined) {
+                    window.location.href=data['redirect']
+                } else {
+                    var html = '<div class="item item-left"><div class="avatar"><img src="./static/chatgpt.png" /></div><div class="bubble bubble-left markdown">' + marked.marked(data.content) + '</div></div>';
+                    $(".content").append(html);
+                    $(".content").scrollTop($(".content")[0].scrollHeight);
+                }
 
             }
         });
@@ -269,11 +280,13 @@
         }
     });
     $('#cz-btn').click(function () {
-
-        $.get("/deleteHistory", function (data) {
-            console.log(data);
-        });
-        window.location.href = "/";
+        {#弹窗提醒是否确认删除#}
+        if (confirm("确认删除所有聊天记录吗？")) {
+            $.get("/clearHistory", function (data) {
+                console.log(data);
+            });
+            window.location.reload()
+        }
     });
     $('#cl-btn').click(function () {
         if ($("#cl-btn").text() === "当前为普通对话") {

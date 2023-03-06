@@ -5,6 +5,8 @@ import sys
 import uuid
 from LRU_cache import LRUCache
 import threading
+import pickle
+import asyncio
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.urandom(24)
@@ -14,7 +16,6 @@ os.environ['HTTPS_PROXY'] = 'socks5://127.0.0.1:7890'
 openai.api_key = os.getenv("OPENAI_API_KEY")        # 从环境变量中获取api_key,或直接设置api_key
 
 chat_context_number = 5         # 连续对话模式下的上下文数量
-all_user_dict = LRUCache(12)    # 设置最多存储12个用户的上下文
 lock = threading.Lock()         # 用于线程锁
 
 
@@ -118,8 +119,8 @@ def load_messages():
     """
     check_session(session)
     if session.get('user_id') is None:
-        messages_history = [{"role": "assistant", "content": "当前会话为首次请求，请输入已有用户id或创建新的用户id"},
-                            {"role": "assistant", "content": "已有用户id请在输入框中输入，创建新的用户id请在输入框中输入new_user_id:xxx"}]
+        messages_history = [{"role": "assistant", "content": "当前会话为首次请求，请输入已有用户id或创建新的用户id。"
+                                                             "已有用户id请在输入框中输入，创建新的用户id请在输入框中输入new_id:xxx"}]
     else:
         user_info = get_user_info(session.get('user_id'))
         messages_history = user_info['messages_history']
@@ -136,7 +137,7 @@ def return_message():
     send_message = request.values.get("send_message")
     print("用户发送的消息：" + send_message)
     if session.get('user_id') is None:
-        if send_message.strip().startswith("new_user_id:"):
+        if send_message.strip().startswith("new_id:"):
             user_id = send_message.split(":")[1]
             session['user_id'] = user_id
             lock.acquire()
@@ -153,7 +154,7 @@ def return_message():
                 session['user_id'] = user_id
                 print("已有用户id:\t", user_id)
                 # 重定向到index
-                return redirect(url_for('index'))
+                return {"redirect": "/"}
     else:
         user_info = get_user_info(session.get('user_id'))
         messages_history = user_info['messages_history']
@@ -163,7 +164,22 @@ def return_message():
             "content": content,
             "content_id": f"content_id{len(messages_history) - 1}"
         }
+        # 异步存储all_user_dict
+        asyncio.run(save_all_user_dict())
         return data
+
+
+async def save_all_user_dict():
+    """
+    异步存储all_user_dict
+    :return:
+    """
+    await asyncio.sleep(0)
+    lock.acquire()
+    with open("all_user_dict.pkl", "wb") as f:
+        pickle.dump(all_user_dict, f)
+    print("all_user_dict.pkl存储成功")
+    lock.release()
 
 
 @app.route('/changeModeNormal', methods=['GET'])
@@ -212,6 +228,15 @@ def reset_history():
 
 
 if __name__ == '__main__':
+    all_user_dict = LRUCache(12)  # 设置最多存储12个用户的上下文
+    if os.path.exists("all_user_dict.pkl"):
+        with open("all_user_dict.pkl", "rb") as pickle_file:
+            all_user_dict = pickle.load(pickle_file)
+        print("已加载上次存储的用户上下文")
+    else:
+        with open("all_user_dict.pkl", "wb") as pickle_file:
+            pickle.dump(all_user_dict, pickle_file)
+        print("未检测到上次存储的用户上下文，已创建新的用户上下文")
     if len(openai.api_key) == 0:
         # 退出程序
         print("请在openai官网注册账号，获取api_key填写至程序内或命令行参数中")
