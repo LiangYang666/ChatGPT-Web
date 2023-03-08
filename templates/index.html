@@ -260,7 +260,7 @@
             return;
         }
 
-        var html = '<div class="item item-right"><div class="bubble bubble-right">' + text + '</div><div class="avatar"><img src="./static/people.jpg" /></div></div>';
+        var html = '<div class="item item-right"><div class="bubble bubble-right markdown">' + marked.marked(text) + '</div><div class="avatar"><img src="./static/people.jpg" /></div></div>';
         $(".content").append(html);
         $("#textarea").val("");
         $(".content").scrollTop($(".content")[0].scrollHeight);
@@ -280,7 +280,6 @@
                     $(".content").append(html);
                     $(".content").scrollTop($(".content")[0].scrollHeight);
                 }
-
             }
         });
     });

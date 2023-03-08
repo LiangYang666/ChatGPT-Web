@@ -127,7 +127,7 @@ def load_messages():
     else:
         user_info = get_user_info(session.get('user_id'))
         messages_history = user_info['messages_history']
-    print("重新加载聊天记录")
+        print(f"用户({session.get('user_id')})加载聊天记录，共{len(messages_history)}条记录")
     return messages_history
 
 
