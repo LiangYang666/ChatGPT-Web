@@ -15,6 +15,7 @@ os.environ['HTTP_PROXY'] = 'socks5://127.0.0.1:7890'
 os.environ['HTTPS_PROXY'] = 'socks5://127.0.0.1:7890'
 openai.api_key = os.getenv("OPENAI_API_KEY")        # 从环境变量中获取api_key,或直接设置api_key
 
+USER_SAVE_MAX = 12  # 设置最多存储12个用户，当用户过多时可适当调大
 chat_context_number_max = 5     # 连续对话模式下的上下文最大数量
 lock = threading.Lock()         # 用于线程锁
 
@@ -299,10 +300,11 @@ def reset_history():
 
 
 if __name__ == '__main__':
-    all_user_dict = LRUCache(12)  # 设置最多存储12个用户的上下文
+    all_user_dict = LRUCache(USER_SAVE_MAX)
     if os.path.exists("all_user_dict.pkl"):
         with open("all_user_dict.pkl", "rb") as pickle_file:
-            all_user_dict = pickle.load(pickle_file)
+            all_user_dict: LRUCache = pickle.load(pickle_file)
+            all_user_dict.change_capacity(USER_SAVE_MAX)
         print("已加载上次存储的用户上下文")
     else:
         with open("all_user_dict.pkl", "wb") as pickle_file:

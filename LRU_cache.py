@@ -22,6 +22,11 @@ class LRUCache:
         if len(self.stack) > self.capacity:
             self.stack.popitem(last=False)
 
+    def change_capacity(self, capacity):
+        self.capacity = capacity
+        for i in range(len(self.stack) - capacity):
+            self.stack.popitem(last=False)
+
     def delete(self, key):
         if key in self.stack:
             del self.stack[key]
