@@ -206,6 +206,8 @@ def return_message():
                 lock.release()
                 session['user_id'] = None
                 print("删除用户id:\t", user_id)
+                # 异步存储all_user_dict
+                asyncio.run(save_all_user_dict())
                 return {"redirect": "/"}
         elif send_message.startswith("set_apikey:"):
             apikey = send_message.split(":")[1]
@@ -311,12 +313,16 @@ def reset_history():
 
 
 if __name__ == '__main__':
+    print("持久化存储文件路径为:", os.getcwd()+"/all_user_dict.pkl")
     all_user_dict = LRUCache(USER_SAVE_MAX)
     if os.path.exists("all_user_dict.pkl"):
         with open("all_user_dict.pkl", "rb") as pickle_file:
             all_user_dict: LRUCache = pickle.load(pickle_file)
             all_user_dict.change_capacity(USER_SAVE_MAX)
-        print("已加载上次存储的用户上下文")
+        print(f"已加载上次存储的用户上下文，共有{len(all_user_dict)}用户, 分别是")
+        for i, user_id in enumerate(all_user_dict.keys()):
+            print(i, user_id)
+
     else:
         with open("all_user_dict.pkl", "wb") as pickle_file:
             pickle.dump(all_user_dict, pickle_file)
