@@ -31,6 +31,12 @@ class LRUCache:
         if key in self.stack:
             del self.stack[key]
 
+    def keys(self):
+        return self.stack.keys()
+
+    def __len__(self):
+        return len(self.stack)
+
     def __contains__(self, key):
         return key in self.stack
 
