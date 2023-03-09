@@ -20,14 +20,16 @@ chat_context_number_max = 5     # 连续对话模式下的上下文最大数量
 lock = threading.Lock()         # 用于线程锁
 
 
-def get_response_from_ChatGPT_API(message_context):
+def get_response_from_ChatGPT_API(message_context, apikey):
     """
     从ChatGPT API获取回复
+    :param apikey:
     :param message_context: 上下文
     :return: 回复
     """
     try:
         completion = openai.ChatCompletion.create(
+            api_key=apikey,
             model="gpt-3.5-turbo",
             messages=message_context
         )
@@ -38,13 +40,14 @@ def get_response_from_ChatGPT_API(message_context):
     return data
 
 
-def handle_messages_get_response(message, message_history, have_chat_context, chat_with_history):
+def handle_messages_get_response(message, apikey, message_history, have_chat_context, chat_with_history):
     """
     处理用户发送的消息，获取回复
-    :param message:
-    :param message_history:
-    :param chat_with_history:
-    :return:
+    :param message: 用户发送的消息
+    :param apikey:
+    :param message_history: 消息历史
+    :param have_chat_context: 是否有上下文
+    :param chat_with_history: 是否连续对话
     """
     message_history.append({"role": "user", "content": message})
     message_context = []
@@ -54,7 +57,7 @@ def handle_messages_get_response(message, message_history, have_chat_context, ch
     else:
         message_context.append(message_history[-1])
 
-    response = get_response_from_ChatGPT_API(message_context)
+    response = get_response_from_ChatGPT_API(message_context, apikey)
     message_history.append({"role": "assistant", "content": response})
     # 换行打印messages_history
     # print("message_history:")
@@ -142,16 +145,17 @@ def return_message():
     :return:
     """
     check_session(session)
-    send_message = request.values.get("send_message")
-    if send_message.strip()=="帮助":
+    send_message = request.values.get("send_message").strip()
+    if send_message=="帮助":
         return {"content": "### 帮助\n"
-                           "1. 输入`new:xxx`创建新的用户id\n "
-                           "2. 聊天过程中输入`id:xxx`切换到已有用户id，新会话时无需加`id:`进入已有用户\n"
-                           "3. 输入`帮助`查看帮助信息"}
+                           "1. 输入 new:xxx 创建新的用户id\n "
+                           "2. 聊天过程中输入 id:your_id 切换到已有用户id，新会话时无需加`id:`进入已有用户\n"
+                           "3. 聊天过程中输入 set_apikey:[your_apikey](https://platform.openai.com/account/api-keys) 设置用户专属apikey\n"
+                           "4. 输入`帮助`查看帮助信息"}
 
     if session.get('user_id') is None:
         print("当前会话为首次请求，用户输入:\t", send_message)
-        if send_message.strip().startswith("new:"):
+        if send_message.startswith("new:"):
             user_id = send_message.split(":")[1]
             session['user_id'] = user_id
             lock.acquire()
@@ -160,9 +164,9 @@ def return_message():
                                         "messages_history": [{"role": "assistant", "content": f"当前对话的用户id为 `{user_id}`"}]})        # 默认普通对话
             lock.release()
             print("创建新的用户id:\t", user_id)
-            return {"content": "创建新的用户id成功，可以开始对话了"}
+            return {"content": "创建新的用户id成功，可以开始对话了\n您可以使用该网站提供的通用apikey进行对话，也可以输入 set_apikey:[your_apikey](https://platform.openai.com/account/api-keys) 来设置用户专属apikey"}
         else:
-            user_id = send_message.strip()
+            user_id = send_message
             user_info = get_user_info(user_id)
             if user_info is None:
                 return {"content": "用户id不存在，请重新输入或创建新的用户id"}
@@ -171,8 +175,8 @@ def return_message():
                 print("已有用户id:\t", user_id)
                 # 重定向到index
                 return {"redirect": "/"}
-    else:
-        if send_message.strip().startswith("id:"):
+    else:   # 当存在用户id时
+        if send_message.startswith("id:"):
             user_id = send_message.split(":")[1].strip()
             user_info = get_user_info(user_id)
             if user_info is None:
@@ -182,7 +186,7 @@ def return_message():
                 print("切换到已有用户id:\t", user_id)
                 # 重定向到index
                 return {"redirect": "/"}
-        elif send_message.strip().startswith("new:"):
+        elif send_message.startswith("new:"):
             user_id = send_message.split(":")[1]
             session['user_id'] = user_id
             lock.acquire()
@@ -192,7 +196,7 @@ def return_message():
             lock.release()
             print("创建新的用户id:\t", user_id)
             return {"content": "创建新的用户id成功，可以开始对话了"}
-        elif send_message.strip().startswith("delete:"):
+        elif send_message.startswith("delete:"):
             user_id = send_message.split(":")[1]
             if user_id != session.get('user_id'):
                 return {"content": "只能删除当前会话的用户id"}
@@ -203,15 +207,22 @@ def return_message():
                 session['user_id'] = None
                 print("删除用户id:\t", user_id)
                 return {"redirect": "/"}
+        elif send_message.startswith("set_apikey:"):
+            apikey = send_message.split(":")[1]
+            user_info = get_user_info(session.get('user_id'))
+            user_info['apikey'] = apikey
+            print("设置用户专属apikey:\t", apikey)
+            return {"content": "设置用户专属apikey成功"}
 
-        else:
+        else:       # 处理聊天数据
             print(f"用户({session.get('user_id')})发送消息:{send_message}")
             user_info = get_user_info(session.get('user_id'))
             messages_history = user_info['messages_history']
             chat_with_history = user_info['chat_with_history']
+            apikey = user_info.get('apikey')
             if chat_with_history:
                 user_info['have_chat_context'] += 1
-            content = handle_messages_get_response(send_message, messages_history, user_info['have_chat_context'],  chat_with_history)
+            content = handle_messages_get_response(send_message, apikey, messages_history, user_info['have_chat_context'],  chat_with_history)
             print(f"用户({session.get('user_id')})得到的回复消息:{content[:40]}...")
             if chat_with_history:
                 user_info['have_chat_context'] += 1
