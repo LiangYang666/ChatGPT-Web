@@ -122,8 +122,11 @@ def load_messages():
     """
     check_session(session)
     if session.get('user_id') is None:
-        messages_history = [{"role": "assistant", "content": "当前会话为首次请求，请输入已有用户id或创建新的用户id。"
-                                                             "已有用户id请在输入框中输入，创建新的用户id请在输入框中输入new_id:xxx"}]
+        messages_history = [{"role": "assistant", "content": "#### 当前会话为首次请求\n"
+                                                             "#### 请输入已有用户id或创建新的用户id。\n"
+                                                             "- 已有用户id请在输入框中直接输入\n"
+                                                             "- 创建新的用户id请在输入框中输入new:xxx,其中xxx为你的自定义id，请牢记\n"
+                                                             "- 输入帮助以获取帮助提示"}]
     else:
         user_info = get_user_info(session.get('user_id'))
         messages_history = user_info['messages_history']
@@ -139,13 +142,31 @@ def return_message():
     """
     check_session(session)
     send_message = request.values.get("send_message")
+    if send_message.strip()=="帮助":
+        return {"content": "### 帮助\n"
+                           "1. 输入`new:xxx`创建新的用户id\n "
+                           "2. 聊天过程中输入`id:xxx`切换到已有用户id，新会话时无需加`id:`进入已有用户\n"
+                           "3. 输入`帮助`查看帮助信息"}
+    elif send_message.strip().startswith("id"):
+        user_id = send_message.split(":")[1].strip()
+        user_info = get_user_info(user_id)
+        if user_info is None:
+            return {"content": "用户id不存在，请重新输入或创建新的用户id"}
+        else:
+            session['user_id'] = user_id
+            print("已有用户id:\t", user_id)
+            # 重定向到index
+            return {"redirect": "/"}
+
     if session.get('user_id') is None:
         print("当前会话为首次请求，用户输入:\t", send_message)
-        if send_message.strip().startswith("new_id:"):
+        if send_message.strip().startswith("new:"):
             user_id = send_message.split(":")[1]
             session['user_id'] = user_id
             lock.acquire()
-            all_user_dict.put(user_id, {"chat_with_history": False, "have_chat_context": 0,  "messages_history": [{"role": "assistant", "content": f"当前对话的用户id为 `{user_id}`"}]})        # 默认普通对话
+            all_user_dict.put(user_id, {"chat_with_history": False,
+                                        "have_chat_context": 0,
+                                        "messages_history": [{"role": "assistant", "content": f"当前对话的用户id为 `{user_id}`"}]})        # 默认普通对话
             lock.release()
             print("创建新的用户id:\t", user_id)
             return {"content": "创建新的用户id成功，可以开始对话了"}
