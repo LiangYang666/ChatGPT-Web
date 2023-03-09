@@ -147,16 +147,6 @@ def return_message():
                            "1. 输入`new:xxx`创建新的用户id\n "
                            "2. 聊天过程中输入`id:xxx`切换到已有用户id，新会话时无需加`id:`进入已有用户\n"
                            "3. 输入`帮助`查看帮助信息"}
-    elif send_message.strip().startswith("id"):
-        user_id = send_message.split(":")[1].strip()
-        user_info = get_user_info(user_id)
-        if user_info is None:
-            return {"content": "用户id不存在，请重新输入或创建新的用户id"}
-        else:
-            session['user_id'] = user_id
-            print("已有用户id:\t", user_id)
-            # 重定向到index
-            return {"redirect": "/"}
 
     if session.get('user_id') is None:
         print("当前会话为首次请求，用户输入:\t", send_message)
@@ -181,23 +171,56 @@ def return_message():
                 # 重定向到index
                 return {"redirect": "/"}
     else:
-        print(f"用户({session.get('user_id')})发送消息:{send_message}")
-        user_info = get_user_info(session.get('user_id'))
-        messages_history = user_info['messages_history']
-        chat_with_history = user_info['chat_with_history']
-        if chat_with_history:
-            user_info['have_chat_context'] += 1
-        content = handle_messages_get_response(send_message, messages_history, user_info['have_chat_context'],  chat_with_history)
-        print(f"用户({session.get('user_id')})得到的回复消息:{content[:40]}...")
-        if chat_with_history:
-            user_info['have_chat_context'] += 1
-        data = {
-            "content": content,
-            "content_id": f"content_id{len(messages_history) - 1}"
-        }
-        # 异步存储all_user_dict
-        asyncio.run(save_all_user_dict())
-        return data
+        if send_message.strip().startswith("id:"):
+            user_id = send_message.split(":")[1].strip()
+            user_info = get_user_info(user_id)
+            if user_info is None:
+                return {"content": "用户id不存在，请重新输入或创建新的用户id"}
+            else:
+                session['user_id'] = user_id
+                print("切换到已有用户id:\t", user_id)
+                # 重定向到index
+                return {"redirect": "/"}
+        elif send_message.strip().startswith("new:"):
+            user_id = send_message.split(":")[1]
+            session['user_id'] = user_id
+            lock.acquire()
+            all_user_dict.put(user_id, {"chat_with_history": False,
+                                        "have_chat_context": 0,
+                                        "messages_history": [{"role": "assistant", "content": f"当前对话的用户id为 `{user_id}`"}]})
+            lock.release()
+            print("创建新的用户id:\t", user_id)
+            return {"content": "创建新的用户id成功，可以开始对话了"}
+        elif send_message.strip().startswith("delete:"):
+            user_id = send_message.split(":")[1]
+            if user_id != session.get('user_id'):
+                return {"content": "只能删除当前会话的用户id"}
+            else:
+                lock.acquire()
+                all_user_dict.delete(user_id)
+                lock.release()
+                session['user_id'] = None
+                print("删除用户id:\t", user_id)
+                return {"redirect": "/"}
+
+        else:
+            print(f"用户({session.get('user_id')})发送消息:{send_message}")
+            user_info = get_user_info(session.get('user_id'))
+            messages_history = user_info['messages_history']
+            chat_with_history = user_info['chat_with_history']
+            if chat_with_history:
+                user_info['have_chat_context'] += 1
+            content = handle_messages_get_response(send_message, messages_history, user_info['have_chat_context'],  chat_with_history)
+            print(f"用户({session.get('user_id')})得到的回复消息:{content[:40]}...")
+            if chat_with_history:
+                user_info['have_chat_context'] += 1
+            data = {
+                "content": content,
+                "content_id": f"content_id{len(messages_history) - 1}"
+            }
+            # 异步存储all_user_dict
+            asyncio.run(save_all_user_dict())
+            return data
 
 
 async def save_all_user_dict():

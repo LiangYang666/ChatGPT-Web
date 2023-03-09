@@ -22,6 +22,10 @@ class LRUCache:
         if len(self.stack) > self.capacity:
             self.stack.popitem(last=False)
 
+    def delete(self, key):
+        if key in self.stack:
+            del self.stack[key]
+
     def __contains__(self, key):
         return key in self.stack
 
