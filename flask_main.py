@@ -135,7 +135,7 @@ def load_messages():
         user_info = get_user_info(session.get('user_id'))
         messages_history = user_info['messages_history']
         print(f"用户({session.get('user_id')})加载聊天记录，共{len(messages_history)}条记录")
-    return messages_history
+    return {"code": 0, "data": messages_history, "message": ""}
 
 
 @app.route('/returnMessage', methods=['GET', 'POST'])
@@ -164,7 +164,7 @@ def return_message():
                                         "messages_history": [{"role": "assistant", "content": f"当前对话的用户id为 `{user_id}`"}]})        # 默认普通对话
             lock.release()
             print("创建新的用户id:\t", user_id)
-            return {"content": "创建新的用户id成功，可以开始对话了\n您可以使用该网站提供的通用apikey进行对话，也可以输入 set_apikey:[your_apikey](https://platform.openai.com/account/api-keys) 来设置用户专属apikey"}
+            return {"content": "- 创建新的用户id成功，可以开始对话了  \n- 您可以使用该网站提供的通用apikey进行对话，也可以输入 set_apikey:[your_apikey](https://platform.openai.com/account/api-keys) 来设置用户专属apikey"}
         else:
             user_id = send_message
             user_info = get_user_info(user_id)
