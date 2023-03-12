@@ -133,9 +133,58 @@ def load_messages():
                                                              "- 输入帮助以获取帮助提示"}]
     else:
         user_info = get_user_info(session.get('user_id'))
-        messages_history = user_info['messages_history']
+        chat_id = user_info['selected_chat_id']
+        messages_history = user_info['chats'][chat_id]['messages_history']
         print(f"用户({session.get('user_id')})加载聊天记录，共{len(messages_history)}条记录")
     return {"code": 0, "data": messages_history, "message": ""}
+
+
+@app.route('/loadChats', methods=['GET', 'POST'])
+def load_chats():
+    """
+    加载聊天联系人
+    :return: 聊天联系人
+    """
+    # chats = [{'id': "a", 'name': "test1", "selected": True},
+    #          {'id': "b", 'name': "test2", "selected": False},
+    #          {'id': "c", 'name': "test3", "selected": False},
+    #          {'id': "d", 'name': "test4", "selected": False},
+    #          {'id': "e", 'name': "test5", "selected": False},
+    #          {'id': "f", 'name': "test6", "selected": False},
+    #          {'id': "g", 'name': "test7", "selected": False},
+    #          {'id': "h", 'name': "test8", "selected": False},
+    #          {'id': "i", 'name': "test9", "selected": False},
+    #          {'id': "j", 'name': "test10", "selected": False},
+    #          {'id': "k", 'name': "test11", "selected": False},
+    #          {'id': "l", 'name': "test12", "selected": False},
+    #          {'id': "m", 'name': "test13", "selected": False},
+    #          {'id': "n", 'name': "test14", "selected": False},
+    #          {'id': "o", 'name': "test15", "selected": False},
+    #          {'id': "p", 'name': "test16", "selected": False}]
+    check_session(session)
+    if not check_user_bind(session):
+        chats = []
+
+    else:
+        user_info = get_user_info(session.get('user_id'))
+        chats = []
+        for chat_id, chat_info in user_info['chats'].items():
+            chats.append({"id": chat_id, "name": chat_info['name'], "selected": chat_id == user_info['selected_chat_id']})
+
+    return {"code": 0, "data": chats, "message": ""}
+
+
+def new_chat_dict(user_id, name):
+    return {"chat_with_history": False,
+             "have_chat_context": 0,
+             "name": name,
+             "messages_history": [{"role": "assistant", "content": f"当前对话的用户id为 `{user_id}`"}]}
+
+
+def new_user_dict(user_id):
+    chat_id = str(uuid.uuid1())
+    return {"chats": {chat_id: new_chat_dict(user_id, "默认会话")},
+            "selected_chat_id": chat_id}
 
 
 @app.route('/returnMessage', methods=['GET', 'POST'])
@@ -153,20 +202,21 @@ def return_message():
                            "3. 聊天过程中输入 set_apikey:[your_apikey](https://platform.openai.com/account/api-keys) 设置用户专属apikey\n"
                            "4. 输入`帮助`查看帮助信息"}
 
-    if session.get('user_id') is None:
+    if session.get('user_id') is None:      # 如果当前session未绑定用户
         print("当前会话为首次请求，用户输入:\t", send_message)
         if send_message.startswith("new:"):
             user_id = send_message.split(":")[1]
             if user_id in all_user_dict:
                 session['user_id'] = user_id
                 return {"redirect": "/"}
+            user_dict = new_user_dict(user_id)
             lock.acquire()
-            all_user_dict.put(user_id, {"chat_with_history": False,
-                                        "have_chat_context": 0,
-                                        "messages_history": [{"role": "assistant", "content": f"当前对话的用户id为 `{user_id}`"}]})        # 默认普通对话
+            all_user_dict.put(user_id, user_dict)        # 默认普通对话
             lock.release()
             print("创建新的用户id:\t", user_id)
-            return {"content": "- 创建新的用户id成功，可以开始对话了  \n- 您可以使用该网站提供的通用apikey进行对话，也可以输入 set_apikey:[your_apikey](https://platform.openai.com/account/api-keys) 来设置用户专属apikey"}
+            session['user_id'] = user_id
+            return {"redirect": "/"}
+            # return {"content": "- 创建新的用户id成功，可以开始对话了  \n- 您可以使用该网站提供的通用apikey进行对话，也可以输入 set_apikey:[your_apikey](https://platform.openai.com/account/api-keys) 来设置用户专属apikey"}
         else:
             user_id = send_message
             user_info = get_user_info(user_id)
@@ -191,14 +241,13 @@ def return_message():
         elif send_message.startswith("new:"):
             user_id = send_message.split(":")[1]
             session['user_id'] = user_id
+            user_dict = new_user_dict(user_id)
             lock.acquire()
-            all_user_dict.put(user_id, {"chat_with_history": False,
-                                        "have_chat_context": 0,
-                                        "messages_history": [{"role": "assistant", "content": f"当前对话的用户id为 `{user_id}`"}]})
+            all_user_dict.put(user_id, user_dict)
             lock.release()
             print("创建新的用户id:\t", user_id)
             return {"content": "创建新的用户id成功，可以开始对话了"}
-        elif send_message.startswith("delete:"):
+        elif send_message.startswith("delete:"):        # 删除用户
             user_id = send_message.split(":")[1]
             if user_id != session.get('user_id'):
                 return {"content": "只能删除当前会话的用户id"}
@@ -219,17 +268,19 @@ def return_message():
             return {"content": "设置用户专属apikey成功"}
 
         else:       # 处理聊天数据
-            print(f"用户({session.get('user_id')})发送消息:{send_message}")
-            user_info = get_user_info(session.get('user_id'))
-            messages_history = user_info['messages_history']
-            chat_with_history = user_info['chat_with_history']
+            user_id = session.get('user_id')
+            print(f"用户({user_id})发送消息:{send_message}")
+            user_info = get_user_info(user_id)
+            chat_id = user_info['selected_chat_id']
+            messages_history = user_info['chats'][chat_id]['messages_history']
+            chat_with_history = user_info['chats'][chat_id]['chat_with_history']
             apikey = user_info.get('apikey')
             if chat_with_history:
-                user_info['have_chat_context'] += 1
-            content = handle_messages_get_response(send_message, apikey, messages_history, user_info['have_chat_context'],  chat_with_history)
+                user_info['chats'][chat_id]['have_chat_context'] += 1
+            content = handle_messages_get_response(send_message, apikey, messages_history, user_info['chats'][chat_id]['have_chat_context'],  chat_with_history)
             print(f"用户({session.get('user_id')})得到的回复消息:{content[:40]}...")
             if chat_with_history:
-                user_info['have_chat_context'] += 1
+                user_info['chats'][chat_id]['have_chat_context'] += 1
             data = {
                 "content": content,
                 "content_id": f"content_id{len(messages_history) - 1}"
@@ -262,7 +313,8 @@ def get_mode():
     if not check_user_bind(session):
         return "normal"
     user_info = get_user_info(session.get('user_id'))
-    chat_with_history = user_info['chat_with_history']
+    chat_id = user_info['selected_chat_id']
+    chat_with_history = user_info['chats'][chat_id]['chat_with_history']
     if chat_with_history:
         return {"mode": "continuous"}
     else:
@@ -279,7 +331,8 @@ def change_mode_normal():
     if not check_user_bind(session):
         return {"code": -1, "msg": "请先创建或输入已有用户id"}
     user_info = get_user_info(session.get('user_id'))
-    user_info['chat_with_history'] = False
+    chat_id = user_info['selected_chat_id']
+    user_info['chats'][chat_id]['chat_with_history'] = False
     print("开启普通对话")
     return {"code": 0, "content": "开启普通对话"}
 
@@ -294,9 +347,47 @@ def change_mode_continuous():
     if not check_user_bind(session):
         return {"code": -1, "msg": "请先创建或输入已有用户id"}
     user_info = get_user_info(session.get('user_id'))
-    user_info['chat_with_history'] = True
+    chat_id = user_info['selected_chat_id']
+    user_info['chats'][chat_id]['chat_with_history'] = True
     print("开启连续对话")
     return {"code": 0, "content": "开启连续对话"}
+
+
+@app.route('/selectChat', methods=['GET'])
+def select_chat():
+    """
+    选择聊天对象
+    :return:
+    """
+    print("进入")
+    chat_id = request.args.get("id")
+    check_session(session)
+    if not check_user_bind(session):
+        return {"code": -1, "msg": "请先创建或输入已有用户id"}
+    user_id = session.get('user_id')
+    user_info = get_user_info(user_id)
+    user_info['selected_chat_id'] = chat_id
+    print("已选择成功, 对话id为"+chat_id)
+    return {"code": 200, "msg": "选择聊天对象成功"}
+
+
+@app.route('/newChat', methods=['GET'])
+def new_chat():
+    """
+    新建聊天对象
+    :return:
+    """
+    name = request.args.get("name")
+    check_session(session)
+    if not check_user_bind(session):
+        return {"code": -1, "msg": "请先创建或输入已有用户id"}
+    user_id = session.get('user_id')
+    user_info = get_user_info(user_id)
+    new_chat_id = str(uuid.uuid1())
+    user_info['selected_chat_id'] = new_chat_id
+    user_info['chats'][new_chat_id] = new_chat_dict(user_id, name)
+    print("新建聊天对象")
+    return {"code": 200, "data": {"name": name, "id": new_chat_id, "selected": True}}
 
 
 @app.route('/deleteHistory', methods=['GET'])
@@ -309,9 +400,12 @@ def reset_history():
     if not check_user_bind(session):
         return {"code": -1, "msg": "请先创建或输入已有用户id"}
     user_info = get_user_info(session.get('user_id'))
-    user_info['messages_history'] = [user_info['messages_history'][0]]
+    chat_id = user_info['selected_chat_id']
+    user_info["chats"][chat_id]['messages_history'] = [user_info["chats"][chat_id]['messages_history'][0]]
     print("清空历史记录")
     return "2"
+
+
 
 
 if __name__ == '__main__':
