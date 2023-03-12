@@ -157,7 +157,9 @@ def return_message():
         print("当前会话为首次请求，用户输入:\t", send_message)
         if send_message.startswith("new:"):
             user_id = send_message.split(":")[1]
-            session['user_id'] = user_id
+            if user_id in all_user_dict:
+                session['user_id'] = user_id
+                return {"redirect": "/"}
             lock.acquire()
             all_user_dict.put(user_id, {"chat_with_history": False,
                                         "have_chat_context": 0,
