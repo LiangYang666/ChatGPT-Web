@@ -1,4 +1,4 @@
-# 使用ChatGPT最新API创建的聊天页面，模型回复效果与官网的ChatGPT一致，支持多用户和
+# 使用ChatGPT最新API创建的聊天页面，模型回复效果与官网的ChatGPT一致，支持多用户使用，多对话管理  
 ## 注册openai后送5美元，3个月内使用，API调用，0.2美分1000 token
 
 ## 更新说明
@@ -25,13 +25,17 @@
 
 ## 介绍
 - 开启程序后进入如下页面  
-![image](https://user-images.githubusercontent.com/38237931/223034501-13881560-5da6-4897-833d-46e5babdcfcb.png)  
-- 输入已有用户id,或者输入new_id:xxx创建新id，这个id用于绑定会话，下次不同浏览器打开都可以恢复用户的聊天记录,如下为创建一个新id，一个浏览器31天内不会要求再次输入用户id
-![image](https://user-images.githubusercontent.com/38237931/223035594-31479a0e-25ec-462a-85e4-80694ea7d0d9.png)
+![image](https://user-images.githubusercontent.com/38237931/224631613-9330ead7-79f6-46dc-811f-62e504b78b67.png)  
+- 直接输入已有用户id,或者输入new:xxx创建新id，这个id用于绑定会话，下次不同浏览器打开都可以恢复用户的聊天记录,一个浏览器31天内一般不会要求再次输入用户id，如下为创建一个新id，名为zs，下图为发送完成后自动刷新的用户页面，左侧会有一个默认对话  
+![image](https://user-images.githubusercontent.com/38237931/224632635-3639e8bd-a6a6-4c1c-9c49-2c3d04c9ed3b.png)  
+- 代码中已经设置了apikey，但如果开放给别人用针对个别用户也可以安装说明设置用户专属apikey，这里就暂不设置专属的
 - 默认为普通对话模式，即每次发送都是仅对于该提问回答，可点击切换为连续对话模式，chatgpt将会联系上下文(之前的对话，程序中设置了最大5条记录)回复你，但意味着花费会更多money  
-- 用python写一个冒泡算法试试看，回车发送，shift+回车换行  
-- 然后问用C语言呢？会联系上下文回答 
-![image](https://user-images.githubusercontent.com/38237931/223036485-82340df2-9cd5-4ba6-ac55-62cb4aa52926.png)
+- 用python写一个冒泡算法试试看，回车发送，shift+回车换行，然后问用java呢？会联系上下文回答 
+![image](https://user-images.githubusercontent.com/38237931/224633608-704b6de7-3e4f-47f3-b217-f95a65523dcf.png)
+- 还可以按如下添加对话
+![image](https://user-images.githubusercontent.com/38237931/224634107-f9c43c94-f044-4323-913f-2141c081fc04.png)
+- 对话管理，当不使用该对话时，可以点击删除聊天记录，将会直接删除该对话，若当前为默认对话，则只会删除聊天记录
+![image](https://user-images.githubusercontent.com/38237931/224635067-ef490183-9a04-4615-8f46-e4f33ac093a9.png)
 
 ## TODO List
 - [ ] 界面优化
