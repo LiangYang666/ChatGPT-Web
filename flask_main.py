@@ -19,6 +19,11 @@ USER_SAVE_MAX = 12  # 设置最多存储12个用户，当用户过多时可适�
 chat_context_number_max = 5     # 连续对话模式下的上下文最大数量
 lock = threading.Lock()         # 用于线程锁
 
+project_info = "## ChatGPT 网页版  \n" \
+               "#### code from  \n" \
+               "[https://github.com/LiangYang666/ChatGPT-Web](https://github.com/LiangYang666/ChatGPT-Web)  \n" \
+               "发送`帮助`可获取帮助"
+
 
 def get_response_from_ChatGPT_API(message_context, apikey):
     """
@@ -126,11 +131,12 @@ def load_messages():
     """
     check_session(session)
     if session.get('user_id') is None:
-        messages_history = [{"role": "assistant", "content": "#### 当前会话为首次请求\n"
-                                                             "#### 请输入已有用户id或创建新的用户id。\n"
-                                                             "- 已有用户id请在输入框中直接输入\n"
-                                                             "- 创建新的用户id请在输入框中输入new:xxx,其中xxx为你的自定义id，请牢记\n"
-                                                             "- 输入帮助以获取帮助提示"}]
+        messages_history = [{"role": "assistant", "content": project_info},
+                            {"role": "assistant", "content": "#### 当前浏览器会话为首次请求\n"
+                                                             "#### 请输入已有用户`id`或创建新的用户`id`。\n"
+                                                             "- 已有用户`id`请在输入框中直接输入\n"
+                                                             "- 创建新的用户`id`请在输入框中输入`new:xxx`,其中`xxx`为你的自定义id，请牢记\n"
+                                                             "- 输入`帮助`以获取帮助提示"}]
     else:
         user_info = get_user_info(session.get('user_id'))
         chat_id = user_info['selected_chat_id']
@@ -145,22 +151,6 @@ def load_chats():
     加载聊天联系人
     :return: 聊天联系人
     """
-    # chats = [{'id': "a", 'name': "test1", "selected": True},
-    #          {'id': "b", 'name': "test2", "selected": False},
-    #          {'id': "c", 'name': "test3", "selected": False},
-    #          {'id': "d", 'name': "test4", "selected": False},
-    #          {'id': "e", 'name': "test5", "selected": False},
-    #          {'id': "f", 'name': "test6", "selected": False},
-    #          {'id': "g", 'name': "test7", "selected": False},
-    #          {'id': "h", 'name': "test8", "selected": False},
-    #          {'id': "i", 'name': "test9", "selected": False},
-    #          {'id': "j", 'name': "test10", "selected": False},
-    #          {'id': "k", 'name': "test11", "selected": False},
-    #          {'id': "l", 'name': "test12", "selected": False},
-    #          {'id': "m", 'name': "test13", "selected": False},
-    #          {'id': "n", 'name': "test14", "selected": False},
-    #          {'id': "o", 'name': "test15", "selected": False},
-    #          {'id': "p", 'name': "test16", "selected": False}]
     check_session(session)
     if not check_user_bind(session):
         chats = []
@@ -175,14 +165,11 @@ def load_chats():
 
 
 def new_chat_dict(user_id, name):
-    info = "## ChatGPT 网页版  \n" \
-           "#### code from  \n" \
-           "[https://github.com/LiangYang666/ChatGPT-Web](https://github.com/LiangYang666/ChatGPT-Web)  \n" \
-           "发送“帮助“可获取帮助"
+
     return {"chat_with_history": False,
              "have_chat_context": 0,
              "name": name,
-             "messages_history": [{"role": "assistant", "content": info},
+             "messages_history": [{"role": "assistant", "content": project_info},
                                     {"role": "assistant", "content": f"- 当前对话的用户id为 `{user_id}`"}]}
 
 
@@ -225,7 +212,6 @@ def return_message():
             print("创建新的用户id:\t", user_id)
             session['user_id'] = user_id
             return {"redirect": "/"}
-            # return {"content": "- 创建新的用户id成功，可以开始对话了  \n- 您可以使用该网站提供的通用apikey进行对话，也可以输入 set_apikey:[your_apikey](https://platform.openai.com/account/api-keys) 来设置用户专属apikey"}
         else:
             user_id = send_message
             user_info = get_user_info(user_id)
@@ -457,7 +443,6 @@ def check_load_pickle():
         with open("all_user_dict_v2.pkl", "wb") as pickle_file:
             pickle.dump(all_user_dict, pickle_file)
         print("未检测到上次存储的用户上下文，已创建新的用户上下文")
-
 
 
 if __name__ == '__main__':
