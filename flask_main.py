@@ -432,8 +432,11 @@ def check_load_pickle():
             print(i, user_id)
     elif os.path.exists("all_user_dict.pkl"):   # 适配当出现这个时
         print('检测到v1版本的上下文，将转换为v2版本')
+        with open("all_user_dict.pkl", "rb") as pickle_file:
+            all_user_dict = pickle.load(pickle_file)
+            all_user_dict.change_capacity(USER_SAVE_MAX)
         print("共有用户", len(all_user_dict), "个")
-        for user_id in all_user_dict.keys():
+        for user_id in list(all_user_dict.keys()):
             user_info: dict = all_user_dict.get(user_id)
 
             '''
