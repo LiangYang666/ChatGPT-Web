@@ -175,16 +175,25 @@ def load_chats():
 
 
 def new_chat_dict(user_id, name):
+    info = "## ChatGPT 网页版  \n" \
+           "#### code from  \n" \
+           "[https://github.com/LiangYang666/ChatGPT-Web](https://github.com/LiangYang666/ChatGPT-Web)  \n" \
+           "发送“帮助“可获取帮助"
     return {"chat_with_history": False,
              "have_chat_context": 0,
              "name": name,
-             "messages_history": [{"role": "assistant", "content": f"当前对话的用户id为 `{user_id}`"}]}
+             "messages_history": [{"role": "assistant", "content": info},
+                                    {"role": "assistant", "content": f"- 当前对话的用户id为 `{user_id}`"}]}
 
 
 def new_user_dict(user_id):
     chat_id = str(uuid.uuid1())
-    return {"chats": {chat_id: new_chat_dict(user_id, "默认会话")},
-            "selected_chat_id": chat_id}
+    user_dict = {"chats": {chat_id: new_chat_dict(user_id, "默认对话")},
+                "selected_chat_id": chat_id,
+                "default_chat_id": chat_id}
+
+    user_dict['chats'][chat_id]['messages_history'].insert(1, {"role": "assistant", "content": "- 创建新的用户id成功，请牢记该id  \n- 您可以使用该网站提供的通用apikey进行对话，也可以输入 set_apikey:[your_apikey](https://platform.openai.com/account/api-keys) 来设置用户专属apikey"})
+    return user_dict
 
 
 @app.route('/returnMessage', methods=['GET', 'POST'])
@@ -297,7 +306,7 @@ async def save_all_user_dict():
     """
     await asyncio.sleep(0)
     lock.acquire()
-    with open("all_user_dict.pkl", "wb") as f:
+    with open("all_user_dict_v2.pkl", "wb") as f:
         pickle.dump(all_user_dict, f)
     # print("all_user_dict.pkl存储成功")
     lock.release()
@@ -359,7 +368,6 @@ def select_chat():
     选择聊天对象
     :return:
     """
-    print("进入")
     chat_id = request.args.get("id")
     check_session(session)
     if not check_user_bind(session):
@@ -367,7 +375,6 @@ def select_chat():
     user_id = session.get('user_id')
     user_info = get_user_info(user_id)
     user_info['selected_chat_id'] = chat_id
-    print("已选择成功, 对话id为"+chat_id)
     return {"code": 200, "msg": "选择聊天对象成功"}
 
 
@@ -391,38 +398,70 @@ def new_chat():
 
 
 @app.route('/deleteHistory', methods=['GET'])
-def reset_history():
+def delete_history():
     """
     清空上下文
     :return:
     """
     check_session(session)
     if not check_user_bind(session):
+        print("请先创建或输入已有用户id")
         return {"code": -1, "msg": "请先创建或输入已有用户id"}
     user_info = get_user_info(session.get('user_id'))
     chat_id = user_info['selected_chat_id']
-    user_info["chats"][chat_id]['messages_history'] = [user_info["chats"][chat_id]['messages_history'][0]]
-    print("清空历史记录")
+    default_chat_id = user_info['default_chat_id']
+    if default_chat_id == chat_id:
+        print("清空历史记录")
+        user_info["chats"][chat_id]['messages_history'] = user_info["chats"][chat_id]['messages_history'][:3]
+    else:
+        print("删除聊天对话")
+        del user_info["chats"][chat_id]
+    user_info['selected_chat_id'] = default_chat_id
     return "2"
 
 
+def check_load_pickle():
+    global all_user_dict
 
-
-if __name__ == '__main__':
-    print("持久化存储文件路径为:", os.getcwd()+"/all_user_dict.pkl")
-    all_user_dict = LRUCache(USER_SAVE_MAX)
-    if os.path.exists("all_user_dict.pkl"):
-        with open("all_user_dict.pkl", "rb") as pickle_file:
-            all_user_dict: LRUCache = pickle.load(pickle_file)
+    if os.path.exists("all_user_dict_v2.pkl"):
+        with open("all_user_dict_v2.pkl", "rb") as pickle_file:
+            all_user_dict = pickle.load(pickle_file)
             all_user_dict.change_capacity(USER_SAVE_MAX)
         print(f"已加载上次存储的用户上下文，共有{len(all_user_dict)}用户, 分别是")
         for i, user_id in enumerate(all_user_dict.keys()):
             print(i, user_id)
+    elif os.path.exists("all_user_dict.pkl"):   # 适配当出现这个时
+        print('检测到v1版本的上下文，将转换为v2版本')
+        print("共有用户", len(all_user_dict), "个")
+        for user_id in all_user_dict.keys():
+            user_info: dict = all_user_dict.get(user_id)
 
+            '''
+            "chat_with_history": False,
+             "have_chat_context": 0,
+             "name": name,
+             "messages_history":
+            '''
+            if "messages_history" in user_info:
+                user_dict = new_user_dict(user_id)
+                chat_id = user_dict['selected_chat_id']
+                user_dict['chats'][chat_id]['messages_history'] = user_info['messages_history']
+                user_dict['chats'][chat_id]['chat_with_history'] = user_info['chat_with_history']
+                user_dict['chats'][chat_id]['have_chat_context'] = user_info['have_chat_context']
+                all_user_dict.put(user_id, user_dict)   # 更新
+        asyncio.run(save_all_user_dict())
     else:
-        with open("all_user_dict.pkl", "wb") as pickle_file:
+        with open("all_user_dict_v2.pkl", "wb") as pickle_file:
             pickle.dump(all_user_dict, pickle_file)
         print("未检测到上次存储的用户上下文，已创建新的用户上下文")
+
+
+
+if __name__ == '__main__':
+    print("持久化存储文件路径为:", os.getcwd()+"/all_user_dict_v2.pkl")
+    all_user_dict = LRUCache(USER_SAVE_MAX)
+    check_load_pickle()
+
     if len(openai.api_key) == 0:
         # 退出程序
         print("请在openai官网注册账号，获取api_key填写至程序内或命令行参数中")
