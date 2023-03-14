@@ -354,7 +354,7 @@
             url: "/selectChat",
             type: "Get",
             dataType: "json",
-            data: {
+            data: {     // get 方法时 data放置于路径 ?id=
                 "id": id
             },
             success: function (data) {
@@ -395,6 +395,18 @@
     }
     loadHistory();
 
+    function get_time_str(time) {
+
+        let year = time.getFullYear(); //得到年份
+        let month = time.getMonth()+1;//得到月份
+        let date = time.getDate();//得到日期
+        let hour = time.getHours();//得到小时
+        if (hour < 10) hour = "0" + hour;
+        let minu = time.getMinutes();//得到分钟
+        if (minu < 10) minu = "0" + minu;
+        return year + "年" + month + "月" + date + "日 " + hour + ":" + minu
+    }
+    let last_time = 0
 
     $("#send-btn").click(function () {
         console.log("click")
@@ -405,8 +417,16 @@
             alert("请输入内容");
             return;
         }
-
-        var html = '<div class="item item-right"><div class="bubble bubble-right markdown">' + marked.marked(text) + '</div><div class="avatar"><img src="./static/people.jpg" /></div></div>';
+        let html = ''
+        let send_time = new Date();
+        let send_time_str = '';
+        if (send_time.getTime() - last_time > 1000 * 60 * 5) {
+            // 以'%Y年%#m月%#d日 %H:%M'格式显示时间
+            html += '<div class="item item-center"><span>' + get_time_str(send_time) + '</span></div>';
+            last_time = send_time.getTime();
+            send_time_str = get_time_str(send_time);
+        }
+        html += '<div class="item item-right"><div class="bubble bubble-right markdown">' + marked.marked(text) + '</div><div class="avatar"><img src="./static/people.jpg" /></div></div>';
         $(".content").append(html);
         $("#textarea").val("");
         $(".content").scrollTop($(".content")[0].scrollHeight);
@@ -414,12 +434,13 @@
         $.ajax({
             url: "/returnMessage",
             data: {
-                "send_message": text
+                "send_message": text,
+                "send_time": send_time_str   // 当为空时，即告知后端不用存储
             },
             type: "Post",
             dataType: "json",
             success: function (data) {
-                if (data['redirect']!=undefined) {
+                if (data['redirect']!==undefined) {
                     window.location.href=data['redirect'];
                 } else {
                     var html = '<div class="item item-left"><div class="avatar"><img src="./static/chatgpt.png" /></div><div class="bubble bubble-left markdown">' + marked.marked(data.content) + '</div></div>';
@@ -430,7 +451,7 @@
         });
     });
     $("#textarea").keydown(function (e) {
-        if (e.keyCode == 13 && !e.shiftKey) {
+        if (e.keyCode === 13 && !e.shiftKey) {
             e.preventDefault();
             $("#send-btn").click();
         }

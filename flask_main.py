@@ -205,6 +205,7 @@ def return_message():
     """
     check_session(session)
     send_message = request.values.get("send_message").strip()
+    send_time = request.values.get("send_time").strip()
     if send_message=="帮助":
         return {"content": "### 帮助\n"
                            "1. 输入 new:xxx 创建新的用户id\n "
@@ -286,6 +287,8 @@ def return_message():
             apikey = user_info.get('apikey')
             if chat_with_history:
                 user_info['chats'][chat_id]['have_chat_context'] += 1
+            if send_time != "":
+                messages_history.append({'role': 'system', "content": send_time})
             content = handle_messages_get_response(send_message, apikey, messages_history, user_info['chats'][chat_id]['have_chat_context'],  chat_with_history)
             print(f"用户({session.get('user_id')})得到的回复消息:{content[:40]}...")
             if chat_with_history:
