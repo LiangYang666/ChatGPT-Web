@@ -380,10 +380,12 @@
                 let messages = data.data;
                 var html = "";
                 for (var i = 0; i < messages.length; i++) {
-                    if (messages[i].role == "user") {
+                    if (messages[i].role === "user") {
                         html += '<div class="item item-right"><div class="bubble bubble-right">' + messages[i].content + '</div><div class="avatar"><img src="./static/people.jpg" /></div></div>';
-                    } else if(messages[i].role == "assistant"){
+                    } else if(messages[i].role === "assistant"){
                         html += '<div class="item item-left"><div class="avatar"><img src="./static/chatgpt.png" /></div><div class="bubble bubble-left markdown">' + marked.marked(messages[i].content) + '</div></div>';
+                    } else if (messages[i].role === "system") {
+                        html += '<div class="item item-center"><span>' + messages[i].content + '</span></div>';
                     }
                 }
                 $(".content").append(html);
@@ -444,22 +446,22 @@
     });
     $('#cl-btn').click(function () {
         if ($("#cl-btn").text() === "当前为普通对话") {
-            $.get("/changeModeContinuous", function (data) {
+            $.get("/changeMode/continuous", function (data) {
                 if(data.code===-1){
                     alert(data.msg)
                 }  else {
-                    var html = '<div class="item item-center"><span>切换至连续对话模式</span></div>'
+                    var html = '<div class="item item-center"><span>'+data.data.content+'</span></div>'
                     $(".content").append(html);
                     $(".content").scrollTop($(".content")[0].scrollHeight);
                 }
             });
             $("#cl-btn").text("当前为连续对话");
         } else {
-            $.get("/changeModeNormal", function (data) {
+            $.get("/changeMode/normal", function (data) {
                 if(data.code===-1){
                     alert(data.msg)
                 }  else {
-                    var html = '<div class="item item-center"><span>切换至普通对话模式</span></div>'
+                    var html = '<div class="item item-center"><span>'+data.data.content+'</span></div>'
                     $(".content").append(html);
                     $(".content").scrollTop($(".content")[0].scrollHeight);
                 }
