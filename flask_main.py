@@ -357,7 +357,6 @@ def change_mode(status):
     return {"code": 200, "data": message}
 
 
-
 @app.route('/selectChat', methods=['GET'])
 def select_chat():
     """
@@ -424,8 +423,12 @@ def check_load_pickle():
             all_user_dict = pickle.load(pickle_file)
             all_user_dict.change_capacity(USER_SAVE_MAX)
         print(f"已加载上次存储的用户上下文，共有{len(all_user_dict)}用户, 分别是")
-        for i, user_id in enumerate(all_user_dict.keys()):
-            print(i, user_id)
+        for i, user_id in enumerate(list(all_user_dict.keys())):
+            print(f"{i} 用户id:{user_id}\t对话统计:\t", end="")
+            user_info = all_user_dict.get(user_id)
+            for chat_id in user_info['chats'].keys():
+                print(f"{user_info['chats'][chat_id]['name']}[{len(user_info['chats'][chat_id]['messages_history'])}] ", end="")
+            print()
     elif os.path.exists("all_user_dict.pkl"):   # 适配当出现这个时
         print('检测到v1版本的上下文，将转换为v2版本')
         with open("all_user_dict.pkl", "rb") as pickle_file:
