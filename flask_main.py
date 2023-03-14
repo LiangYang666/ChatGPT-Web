@@ -51,14 +51,28 @@ def handle_messages_get_response(message, apikey, message_history, have_chat_con
     :param message: 用户发送的消息
     :param apikey:
     :param message_history: 消息历史
-    :param have_chat_context: 是否有上下文
+    :param have_chat_context: 已发送消息数量上下文(从重置为连续对话开始)
     :param chat_with_history: 是否连续对话
     """
     message_history.append({"role": "user", "content": message})
     message_context = []
     if chat_with_history:
         num = min([len(message_history), chat_context_number_max, have_chat_context])
-        message_context = message_history[-num:]
+        # 获取所有有效聊天记录
+        valid_start = 0
+        valid_num = 0
+        for i in range(len(message_history)-1, -1, -1):
+            message = message_history[i]
+            if message['role'] in {'assistant', 'user'}:
+                valid_start = i
+                valid_num += 1
+            if valid_num >= num:
+                break
+
+        for i in range(valid_start, len(message_history)):
+            message = message_history[i]
+            if message['role'] in {'assistant', 'user'}:
+                message_context.append(message)
     else:
         message_context.append(message_history[-1])
 
@@ -167,7 +181,7 @@ def load_chats():
 def new_chat_dict(user_id, name):
 
     return {"chat_with_history": False,
-             "have_chat_context": 0,
+             "have_chat_context": 0,        # 从每次重置聊天模式后开始重置一次之后累计
              "name": name,
              "messages_history": [{"role": "assistant", "content": project_info},
                                     {"role": "assistant", "content": f"- 当前对话的用户id为 `{user_id}`"}]}
@@ -344,6 +358,7 @@ def change_mode_continuous():
     user_info = get_user_info(session.get('user_id'))
     chat_id = user_info['selected_chat_id']
     user_info['chats'][chat_id]['chat_with_history'] = True
+    user_info['chats'][chat_id]['have_chat_context'] = 0
     print("开启连续对话")
     return {"code": 0, "content": "开启连续对话"}
 
@@ -424,13 +439,6 @@ def check_load_pickle():
         print("共有用户", len(all_user_dict), "个")
         for user_id in list(all_user_dict.keys()):
             user_info: dict = all_user_dict.get(user_id)
-
-            '''
-            "chat_with_history": False,
-             "have_chat_context": 0,
-             "name": name,
-             "messages_history":
-            '''
             if "messages_history" in user_info:
                 user_dict = new_user_dict(user_id)
                 chat_id = user_dict['selected_chat_id']
