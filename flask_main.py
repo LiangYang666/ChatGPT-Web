@@ -13,11 +13,11 @@ app.config['SECRET_KEY'] = os.urandom(24)
 
 os.environ['HTTP_PROXY'] = 'socks5://127.0.0.1:7890'
 os.environ['HTTPS_PROXY'] = 'socks5://127.0.0.1:7890'
-openai.api_key = os.getenv("OPENAI_API_KEY")        # 从环境变量中获取api_key,或直接设置api_key
+openai.api_key = os.getenv("OPENAI_API_KEY")  # 从环境变量中获取api_key,或直接设置api_key
 
 USER_SAVE_MAX = 12  # 设置最多存储12个用户，当用户过多时可适当调大
-chat_context_number_max = 5     # 连续对话模式下的上下文最大数量
-lock = threading.Lock()         # 用于线程锁
+chat_context_number_max = 5  # 连续对话模式下的上下文最大数量
+lock = threading.Lock()  # 用于线程锁
 
 project_info = "## ChatGPT 网页版  \n" \
                "#### code from  \n" \
@@ -40,7 +40,7 @@ def get_response_from_ChatGPT_API(message_context, apikey):
         )
     except Exception as e:
         print(e)
-        return "ChatGPT API error:\n"+str(e)
+        return "ChatGPT API error:\n" + str(e)
     data = completion.choices[0].message.content.strip()
     return data
 
@@ -61,7 +61,7 @@ def handle_messages_get_response(message, apikey, message_history, have_chat_con
         # 获取所有有效聊天记录
         valid_start = 0
         valid_num = 0
-        for i in range(len(message_history)-1, -1, -1):
+        for i in range(len(message_history) - 1, -1, -1):
             message = message_history[i]
             if message['role'] in {'assistant', 'user'}:
                 valid_start = i
@@ -173,27 +173,31 @@ def load_chats():
         user_info = get_user_info(session.get('user_id'))
         chats = []
         for chat_id, chat_info in user_info['chats'].items():
-            chats.append({"id": chat_id, "name": chat_info['name'], "selected": chat_id == user_info['selected_chat_id']})
+            chats.append(
+                {"id": chat_id, "name": chat_info['name'], "selected": chat_id == user_info['selected_chat_id']})
 
     return {"code": 0, "data": chats, "message": ""}
 
 
-def new_chat_dict(user_id, name):
-
+def new_chat_dict(user_id, name, send_time):
     return {"chat_with_history": False,
-             "have_chat_context": 0,        # 从每次重置聊天模式后开始重置一次之后累计
-             "name": name,
-             "messages_history": [{"role": "assistant", "content": project_info},
-                                    {"role": "assistant", "content": f"- 当前对话的用户id为 `{user_id}`"}]}
+            "have_chat_context": 0,  # 从每次重置聊天模式后开始重置一次之后累计
+            "name": name,
+            "messages_history": [{"role": "assistant", "content": project_info},
+                                 {"role": "system", "content": f"当前对话的用户id为{user_id}"},
+                                 {"role": "system", "content": send_time},
+                                 {"role": "system", "content": f"你已添加了{name}，现在可以开始聊天了。"},
+                                 ]}
 
 
-def new_user_dict(user_id):
+def new_user_dict(user_id, send_time):
     chat_id = str(uuid.uuid1())
-    user_dict = {"chats": {chat_id: new_chat_dict(user_id, "默认对话")},
-                "selected_chat_id": chat_id,
-                "default_chat_id": chat_id}
+    user_dict = {"chats": {chat_id: new_chat_dict(user_id, "默认对话", send_time)},
+                 "selected_chat_id": chat_id,
+                 "default_chat_id": chat_id}
 
-    user_dict['chats'][chat_id]['messages_history'].insert(1, {"role": "assistant", "content": "- 创建新的用户id成功，请牢记该id  \n- 您可以使用该网站提供的通用apikey进行对话，也可以输入 set_apikey:[your_apikey](https://platform.openai.com/account/api-keys) 来设置用户专属apikey"})
+    user_dict['chats'][chat_id]['messages_history'].insert(1, {"role": "assistant",
+                                                               "content": "- 创建新的用户id成功，请牢记该id  \n- 您可以使用该网站提供的通用apikey进行对话，也可以输入 set_apikey:[your_apikey](https://platform.openai.com/account/api-keys) 来设置用户专属apikey"})
     return user_dict
 
 
@@ -206,23 +210,23 @@ def return_message():
     check_session(session)
     send_message = request.values.get("send_message").strip()
     send_time = request.values.get("send_time").strip()
-    if send_message=="帮助":
+    if send_message == "帮助":
         return {"content": "### 帮助\n"
                            "1. 输入 new:xxx 创建新的用户id\n "
                            "2. 聊天过程中输入 id:your_id 切换到已有用户id，新会话时无需加`id:`进入已有用户\n"
                            "3. 聊天过程中输入 set_apikey:[your_apikey](https://platform.openai.com/account/api-keys) 设置用户专属apikey\n"
                            "4. 输入`帮助`查看帮助信息"}
 
-    if session.get('user_id') is None:      # 如果当前session未绑定用户
+    if session.get('user_id') is None:  # 如果当前session未绑定用户
         print("当前会话为首次请求，用户输入:\t", send_message)
         if send_message.startswith("new:"):
             user_id = send_message.split(":")[1]
             if user_id in all_user_dict:
                 session['user_id'] = user_id
                 return {"redirect": "/"}
-            user_dict = new_user_dict(user_id)
+            user_dict = new_user_dict(user_id, send_time)
             lock.acquire()
-            all_user_dict.put(user_id, user_dict)        # 默认普通对话
+            all_user_dict.put(user_id, user_dict)  # 默认普通对话
             lock.release()
             print("创建新的用户id:\t", user_id)
             session['user_id'] = user_id
@@ -237,7 +241,7 @@ def return_message():
                 print("已有用户id:\t", user_id)
                 # 重定向到index
                 return {"redirect": "/"}
-    else:   # 当存在用户id时
+    else:  # 当存在用户id时
         if send_message.startswith("id:"):
             user_id = send_message.split(":")[1].strip()
             user_info = get_user_info(user_id)
@@ -251,13 +255,13 @@ def return_message():
         elif send_message.startswith("new:"):
             user_id = send_message.split(":")[1]
             session['user_id'] = user_id
-            user_dict = new_user_dict(user_id)
+            user_dict = new_user_dict(user_id, send_time)
             lock.acquire()
             all_user_dict.put(user_id, user_dict)
             lock.release()
             print("创建新的用户id:\t", user_id)
-            return {"content": "创建新的用户id成功，可以开始对话了"}
-        elif send_message.startswith("delete:"):        # 删除用户
+            return {"redirect": "/"}
+        elif send_message.startswith("delete:"):  # 删除用户
             user_id = send_message.split(":")[1]
             if user_id != session.get('user_id'):
                 return {"content": "只能删除当前会话的用户id"}
@@ -277,7 +281,7 @@ def return_message():
             print("设置用户专属apikey:\t", apikey)
             return {"content": "设置用户专属apikey成功"}
 
-        else:       # 处理聊天数据
+        else:  # 处理聊天数据
             user_id = session.get('user_id')
             print(f"用户({user_id})发送消息:{send_message}")
             user_info = get_user_info(user_id)
@@ -289,7 +293,8 @@ def return_message():
                 user_info['chats'][chat_id]['have_chat_context'] += 1
             if send_time != "":
                 messages_history.append({'role': 'system', "content": send_time})
-            content = handle_messages_get_response(send_message, apikey, messages_history, user_info['chats'][chat_id]['have_chat_context'],  chat_with_history)
+            content = handle_messages_get_response(send_message, apikey, messages_history,
+                                                   user_info['chats'][chat_id]['have_chat_context'], chat_with_history)
             print(f"用户({session.get('user_id')})得到的回复消息:{content[:40]}...")
             if chat_with_history:
                 user_info['chats'][chat_id]['have_chat_context'] += 1
@@ -380,6 +385,7 @@ def new_chat():
     :return:
     """
     name = request.args.get("name")
+    time = request.args.get("time")
     check_session(session)
     if not check_user_bind(session):
         return {"code": -1, "msg": "请先创建或输入已有用户id"}
@@ -387,7 +393,7 @@ def new_chat():
     user_info = get_user_info(user_id)
     new_chat_id = str(uuid.uuid1())
     user_info['selected_chat_id'] = new_chat_id
-    user_info['chats'][new_chat_id] = new_chat_dict(user_id, name)
+    user_info['chats'][new_chat_id] = new_chat_dict(user_id, name, time)
     print("新建聊天对象")
     return {"code": 200, "data": {"name": name, "id": new_chat_id, "selected": True}}
 
@@ -407,7 +413,7 @@ def delete_history():
     default_chat_id = user_info['default_chat_id']
     if default_chat_id == chat_id:
         print("清空历史记录")
-        user_info["chats"][chat_id]['messages_history'] = user_info["chats"][chat_id]['messages_history'][:3]
+        user_info["chats"][chat_id]['messages_history'] = user_info["chats"][chat_id]['messages_history'][:5]
     else:
         print("删除聊天对话")
         del user_info["chats"][chat_id]
@@ -427,9 +433,10 @@ def check_load_pickle():
             print(f"{i} 用户id:{user_id}\t对话统计:\t", end="")
             user_info = all_user_dict.get(user_id)
             for chat_id in user_info['chats'].keys():
-                print(f"{user_info['chats'][chat_id]['name']}[{len(user_info['chats'][chat_id]['messages_history'])}] ", end="")
+                print(f"{user_info['chats'][chat_id]['name']}[{len(user_info['chats'][chat_id]['messages_history'])}] ",
+                      end="")
             print()
-    elif os.path.exists("all_user_dict.pkl"):   # 适配当出现这个时
+    elif os.path.exists("all_user_dict.pkl"):  # 适配当出现这个时
         print('检测到v1版本的上下文，将转换为v2版本')
         with open("all_user_dict.pkl", "rb") as pickle_file:
             all_user_dict = pickle.load(pickle_file)
@@ -438,12 +445,12 @@ def check_load_pickle():
         for user_id in list(all_user_dict.keys()):
             user_info: dict = all_user_dict.get(user_id)
             if "messages_history" in user_info:
-                user_dict = new_user_dict(user_id)
+                user_dict = new_user_dict(user_id, "")
                 chat_id = user_dict['selected_chat_id']
                 user_dict['chats'][chat_id]['messages_history'] = user_info['messages_history']
                 user_dict['chats'][chat_id]['chat_with_history'] = user_info['chat_with_history']
                 user_dict['chats'][chat_id]['have_chat_context'] = user_info['have_chat_context']
-                all_user_dict.put(user_id, user_dict)   # 更新
+                all_user_dict.put(user_id, user_dict)  # 更新
         asyncio.run(save_all_user_dict())
     else:
         with open("all_user_dict_v2.pkl", "wb") as pickle_file:
@@ -452,7 +459,7 @@ def check_load_pickle():
 
 
 if __name__ == '__main__':
-    print("持久化存储文件路径为:", os.getcwd()+"/all_user_dict_v2.pkl")
+    print("持久化存储文件路径为:", os.getcwd() + "/all_user_dict_v2.pkl")
     all_user_dict = LRUCache(USER_SAVE_MAX)
     check_load_pickle()
 
