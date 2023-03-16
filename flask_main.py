@@ -130,13 +130,12 @@ def get_response_stream_generate_from_ChatGPT_API(message_context, apikey, messa
         response = requests.request("POST", url, headers=header, json=data, stream=True)
 
         def generate():
-            rs = []
             stream_content = str()
+            i = 0
             for line in response.iter_lines():
                 # print(str(line))
                 # line_json = json.loads(line)
                 # print(line_json)
-                rs.append(line)
                 line_str = str(line, encoding='utf-8')
                 if line_str.startswith("data:"):
                     if line_str.startswith("data: [DONE]"):
@@ -152,9 +151,14 @@ def get_response_stream_generate_from_ChatGPT_API(message_context, apikey, messa
                                 if 'role' in delta:
                                     role = delta['role']
                                 elif 'content' in delta:
-                                    print(delta['content'], end="")
-                                    stream_content = stream_content + delta['content']
-                                    yield delta['content']
+                                    delta_content = delta['content']
+                                    i += 1
+                                    if i < 40:
+                                        print(delta_content, end="")
+                                    elif i == 40:
+                                        print("......")
+                                    stream_content = stream_content + delta_content
+                                    yield delta_content
 
                 elif len(line_str.strip()) > 0:
                     print(line_str)
