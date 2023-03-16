@@ -18,7 +18,7 @@
 
 
 ## 使用方法
-1. 执行`pip install openai` `pip install flask`安装必要包
+1. 执行`pip install openai` `pip install flask`安装必要包，pyhon版本需大于等于3.7.1
 2. 打开`flask_main.py`文件
 3. 将`openai.api_key`填写为自己的api key
 4. 将os.environ['HTTP_PROXY']和os.environ['HTTPS_PROXY']设置成代理，注意端口设置
