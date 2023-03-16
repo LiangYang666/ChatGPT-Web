@@ -243,6 +243,7 @@
     </style>
     <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/marked.min.js') }}"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS_HTML"></script>
 
 </head>
 <body>
@@ -271,6 +272,22 @@
 
 
 </body>
+<script>
+    window.MathJax.Hub.Config({
+        showProcessingMessages: false, //关闭js加载过程信息
+        messageStyle: "none", //不显示信息
+        jax: ["input/TeX", "output/HTML-CSS"],
+        tex2jax: {
+          inlineMath: [["$", "$"], ["\\(", "\\)"]], //行内公式选择符
+          displayMath: [["$$", "$$"], ["\\[", "\\]"]], //段内公式选择符
+          skipTags: ["script", "noscript", "style", "textarea", "pre", "code", "a"] //避开某些标签
+        },
+        "HTML-CSS": {
+          availableFonts: ["STIX", "TeX"], //可选字体
+          showMathMenu: false //关闭右击菜单显示
+        }
+    });
+</script>
 <script>
     let newchat =  $("#newchat");
 
@@ -387,7 +404,9 @@
                         html += '<div class="item item-center"><span>' + messages[i].content + '</span></div>';
                     }
                 }
+
                 $(".content").append(html);
+                window.MathJax.Hub.Queue(["Typeset", MathJax.Hub, $(".content").get()]);
                 $(".content").scrollTop($(".content")[0].scrollHeight);
             }
         });
@@ -444,6 +463,7 @@
                 } else {
                     var html = '<div class="item item-left"><div class="avatar"><img src="./static/chatgpt.png" /></div><div class="bubble bubble-left markdown">' + marked.marked(data.content) + '</div></div>';
                     $(".content").append(html);
+                    window.MathJax.Hub.Queue(["Typeset", MathJax.Hub, $(".content .markdown").get(-1)]);
                     $(".content").scrollTop($(".content")[0].scrollHeight);
                 }
             }
