@@ -429,7 +429,9 @@
         $("#textarea").val("");
         $(".content").scrollTop($(".content")[0].scrollHeight);
         if(text.startsWith('new:')) send_time_str = get_time_str(send_time)
-
+        let chat_item = $('<div class="item item-left"><div class="avatar"><img src="./static/chatgpt.png" /></div><div class="bubble bubble-left markdown">正在等待回复</div></div>')
+        $(".content").append(chat_item);
+        $(".content").scrollTop($(".content")[0].scrollHeight);
         $.ajax({
             url: "/returnMessage",
             data: {
@@ -438,15 +440,18 @@
             },
             type: "Post",
             dataType: "json",
-            success: function (data) {
-                if (data['redirect']!==undefined) {
-                    window.location.href=data['redirect'];
-                } else {
-                    var html = '<div class="item item-left"><div class="avatar"><img src="./static/chatgpt.png" /></div><div class="bubble bubble-left markdown">' + marked.marked(data.content) + '</div></div>';
-                    $(".content").append(html);
-                    $(".content").scrollTop($(".content")[0].scrollHeight);
+            xhrFields: {
+                onprogress: function (e) {
+                    let response = e.currentTarget.response;
+                    // console.log(response);
+                    if (response.startsWith("url_redirect:")){
+                        window.location.href=response.split(":")[1];
+                    } else {
+                        chat_item.find(".bubble").html(marked.marked(response));
+                        $(".content").scrollTop($(".content")[0].scrollHeight);
+                    }
                 }
-            }
+            },
         });
     });
     $("#textarea").keydown(function (e) {
