@@ -289,6 +289,11 @@
     });
 </script>
 <script>
+
+    window.onload = function(){     //页面加载完成后，自动将光标定位至输入框
+        document.getElementById('textarea').focus();
+    }
+
     let newchat =  $("#newchat");
 
     $.ajax({
