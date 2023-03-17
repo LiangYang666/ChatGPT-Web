@@ -207,7 +207,7 @@
             float: right;
             cursor: pointer;
         }
-        .button-area #cl-btn, .button-area #cz-btn {
+        .button-area #chmod-btn, .button-area #del-btn {
             max-width: 120px;
         }
         .button-area button:hover{
@@ -268,8 +268,8 @@
             <div class="input-area">
                 <textarea name="text" id="textarea"></textarea>
                 <div class="button-area">
-                    <button id="cz-btn" class="talk_sub">删除聊天记录</button>
-                    <button id="cl-btn" class="talk_sub">当前为普通对话</button>
+                    <button id="del-btn" class="talk_sub">删除聊天记录</button>
+                    <button id="chmod-btn" class="talk_sub">当前为普通对话</button>
                     <button id="send-btn" class="talk_sub">发 送</button>
 
                 </div>
@@ -311,9 +311,9 @@
         success: function (data) {
             console.log(data);
             if (data.mode === "normal") {
-                $("#cl-btn").text("当前为普通对话");
+                $("#chmod-btn").text("当前为普通对话");
             } else {
-                $("#cl-btn").text("当前为连续对话");
+                $("#chmod-btn").text("当前为连续对话");
             }
         }
     })
@@ -336,11 +336,22 @@
                 }
                 html += '<div class="chat" id='+chats[i].id+' data-name='+chats[i].name+' data-selected='+chats[i].selected+'>' + chats[i].name + '</div>';
             }
-            $(".chat-list").append(html);
-            $(".chat-list").append(newchat);
+            if(chats.length === 0){     // 表示是未绑定用户状态
+                $("#del-btn").hide();
+                $("#chmod-btn").hide();
+                $(".chat-list").hide();
+            } else {
+                if ($("#"+selectedChatId).data('name')!=='默认对话'){
+                    $("#del-btn").html("删除对话");
+                } else {
+                    $("#del-btn").html("删除聊天记录");
+                }
+                $(".chat-list").append(html);
+                $(".chat-list").append(newchat);
+                // 将选中的selectedChat添加selected属性
+                $("#"+selectedChatId).addClass("selected");
+            }
 
-            // 将选中的selectedChat添加selected属性
-            $("#"+selectedChatId).addClass("selected");
         }
     })
     $("#newchat").click(function () {
@@ -367,6 +378,7 @@
                     $("#" + selectedChatId).removeClass("selected");
                     selectedChatId = data.data.id;
                     $("#"+selectedChatId).addClass("selected");
+                    $("#del-btn").html("删除对话");
                     $('.content').empty();
                     loadHistory();
                 }
@@ -393,6 +405,11 @@
                     selectedChatId = id;
                     $(click).addClass("selected");
                     $('.content').empty();
+                    if ($("#"+selectedChatId).data('name')!=='默认对话'){
+                        $("#del-btn").html("删除对话");
+                    } else {
+                        $("#del-btn").html("删除聊天记录");
+                    }
                     loadHistory();
                 }
             }
@@ -492,7 +509,7 @@
             $("#send-btn").click();
         }
     });
-    $('#cz-btn').click(function () {
+    $('#del-btn').click(function () {
         {#弹窗提醒是否确认删除#}
         if (confirm("确认删除所有聊天记录吗？非默认对话时将会直接删除该对话")) {
             $.get("/deleteHistory", function (data) {
@@ -501,8 +518,8 @@
             window.location.reload()
         }
     });
-    $('#cl-btn').click(function () {
-        if ($("#cl-btn").text() === "当前为普通对话") {
+    $('#chmod-btn').click(function () {
+        if ($("#chmod-btn").text() === "当前为普通对话") {
             $.get("/changeMode/continuous", function (data) {
                 if(data.code===-1){
                     alert(data.msg)
@@ -512,7 +529,7 @@
                     $(".content").scrollTop($(".content")[0].scrollHeight);
                 }
             });
-            $("#cl-btn").text("当前为连续对话");
+            $("#chmod-btn").text("当前为连续对话");
         } else {
             $.get("/changeMode/normal", function (data) {
                 if(data.code===-1){
@@ -523,7 +540,7 @@
                     $(".content").scrollTop($(".content")[0].scrollHeight);
                 }
             });
-            $("#cl-btn").text("当前为普通对话");
+            $("#chmod-btn").text("当前为普通对话");
         }
     });
 </script>
