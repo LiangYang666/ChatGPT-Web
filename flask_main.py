@@ -180,6 +180,43 @@ def handle_messages_get_response_stream(message, apikey, message_history, have_c
     return generate
 
 
+def get_imgurl_from_GPT_API(prompt, apikey):
+
+    '''
+    curl https://api.openai.com/v1/images/generations   -H "Content-Type: application/json"   -H "Authorization: Bearer $OPENAI_API_KEY"   -d '{
+        "prompt": "a white siamese cat",
+        "n": 1,
+        "size": "1024x1024"
+      }'
+    '''
+    if apikey is None:
+        apikey = OPENAI_API_KEY
+    data = {
+        "prompt": prompt,
+        "n": 1,
+        "size": "512x512"   # 只能是256x256、512x512或1024x1024
+    }
+    header = {"Content-Type": "application/json", "Authorization": "Bearer " + apikey}
+    url = "https://api.openai.com/v1/images/generations"
+    response = requests.request("POST", url, headers=header, json=data)
+    response_json = json.loads(response.text)
+    if 'data' in response_json:
+        data = response_json['data']
+        if len(data) > 0:
+            each = data[0]
+            if 'url' in each:
+                return {"code": 200, "data": each['url'], "msg": "success"}
+
+    else:
+        return {"code": 500, "msg": "request error"}
+
+
+@app.route('/generate', methods=['GET'])
+def generate():
+    prompt = request.args.get('prompt')
+    return get_imgurl_from_GPT_API(prompt, None)
+
+
 def check_session(current_session):
     """
     检查session，如果不存在则创建新的session

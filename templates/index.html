@@ -270,6 +270,7 @@
                 <div class="button-area">
                     <button id="del-btn" class="talk_sub">删除聊天记录</button>
                     <button id="chmod-btn" class="talk_sub">当前为普通对话</button>
+                    <button id="generate-btn" class="talk_sub">生成图像</button>
                     <button id="send-btn" class="talk_sub">发 送</button>
 
                 </div>
@@ -546,5 +547,23 @@
             $("#chmod-btn").text("当前为普通对话");
         }
     });
+</script>
+<script>
+    $("#generate-btn").click(function () {
+
+        let text = $("#textarea").val();
+        $.get("/generate", {"prompt": text},
+            function (data) {
+            if(data.code===500){
+                alert(data.msg)
+            }  else {
+                var html = '<div class="item item-left"><div class="avatar"><img src="./static/chatgpt.png" /></div><div class="bubble bubble-left"><img src="'+data.data+'" /></div></div>'
+                $(".content").append(html);
+                $(".content").scrollTop($(".content")[0].scrollHeight);
+            }
+        });
+    });
+
+
 </script>
 </html>
