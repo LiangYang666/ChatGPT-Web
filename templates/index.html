@@ -281,7 +281,7 @@
 
 </body>
 <script>
-    window.MathJax.Hub.Config({
+    MathJax.Hub.Config({
         showProcessingMessages: false, //关闭js加载过程信息
         messageStyle: "none", //不显示信息
         jax: ["input/TeX", "output/HTML-CSS"],
@@ -435,7 +435,7 @@
                     }
                 }
                 $(".content").append(html);
-                window.MathJax.Hub.Queue(["Typeset", MathJax.Hub, $(".content").get()]);
+                MathJax.Hub.Queue(["Typeset", MathJax.Hub, $(".content").get()]);   // 异步转换 放入队列中
                 $(".content").scrollTop($(".content")[0].scrollHeight);
             }
         });
@@ -495,8 +495,11 @@
                     if (response.startsWith("url_redirect:")){
                         window.location.href=response.split(":")[1];
                     } else {
-                        chat_item.find(".bubble").html(marked.marked(response));
-                        window.MathJax.Hub.Queue(["Typeset", MathJax.Hub, $(".content .markdown").get(-1)]);
+                        let div =  document.createElement('div');
+                        div.innerHTML = marked.marked(response);
+                        MathJax.Hub.Typeset(div);
+                        chat_item.find(".bubble").empty();
+                        chat_item.find(".bubble").append(div);
                         $(".content").scrollTop($(".content")[0].scrollHeight);
                     }
                 }
