@@ -248,10 +248,30 @@
             border-radius: 2px;
             padding: .25rem .25rem;
         }
+        .menu{
+            position: absolute;
+            top: 0;
+            right: 0;
+            padding: 0;
+            display: none;
+        }
+        .menu button{
+            width: 60px;
+            height: 25px;
+            padding: 2px;
+            font-size: 6px;
+            border: 1px solid #A0A0A0;
+            border-radius: 4px;
+            outline: none;
+            background-color: #fff;
+            cursor: pointer;
+            display: none;
+        }
     </style>
     <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/marked.min.js') }}"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS_HTML"></script>
+    <script src="https://cdn.staticfile.org/clipboard.js/2.0.4/clipboard.min.js"></script>
 
 </head>
 <body>
@@ -278,9 +298,102 @@
         </div>
 
     </div>
+{#    当移动到消息框时显示的复制按钮 #}
+{#                默认不显示，由js控制显示#}
+    <div class="menu" id="menu">
+        <button class="menu-btn" id="copy-btn">复制</button>
+        <button class="menu-btn" id="resend-btn">重新发送</button>
+    </div>
 
 
 </body>
+<script>
+    // 当鼠标移动到 bubble-left时显示复制按钮
+    $(document).on("mouseover", ".bubble-left", function () {
+        let copyBtn = $("#menu");
+        let copyBtnItem = $("#copy-btn");
+        let offset = $(this).offset();
+        // 右上角显示
+        $("#resend-btn").hide();
+        copyBtnItem.show();
+        copyBtn.css("display", "block");
+        copyBtn.css("top", offset.top);
+        copyBtn.css("left", offset.left + $(this).width() - copyBtnItem.width() + 10);
+        // 设置复制内容
+        copyBtnItem.attr("data-clipboard-text", $(this).text());
+    });
+    // 移出bubble-left和菜单按钮时才恢复
+    $(document).on("mouseleave", ".bubble-left", function () {
+        // 若进入了菜单按钮 不关闭
+        if (event.toElement.className === "menu-btn") {
+            return;
+        } else {
+            $("#menu").css("display", "none");
+        }
+    });
+    $(document).on("mouseleave", "#menu", function () {
+        $("#menu").css("display", "none");
+    });
+    $(document).on("click", "#copy-btn", function () {
+        let clipboard = new ClipboardJS('#copy-btn');
+        clipboard.on('success', function (e) {
+            console.log(e);
+            // 将显示字符更改为复制成功，一秒后改回
+            $("#copy-btn").text("复制成功");
+            setTimeout(function () {
+                $("#copy-btn").text("复制");
+            }, 2000);
+        });
+        clipboard.on('error', function (e) {
+            console.log(e);
+        });
+        // 光标回归
+        $("#textarea").focus();
+    });
+
+    // 当鼠标移动到 bubble-right时显示重发按钮
+    $(document).on("mouseover", ".bubble-right", function () {
+        let menu = $("#menu");
+        let resendBtn = $("#resend-btn");
+        let offset = $(this).offset();
+        // 右上角显示
+        $("#copy-btn").hide();
+        resendBtn.show();
+        menu.css("display", "block");
+        menu.css("top", offset.top);
+        menu.css("left", offset.left + $(this).width() - resendBtn.width() + 10);
+        // 设置复制内容
+        resendBtn.attr("data-clipboard-text", $(this).text());
+    });
+    // 移出bubble-right和菜单按钮时才恢复
+    $(document).on("mouseleave", ".bubble-right", function () {
+        // 若进入了菜单按钮 不关闭
+        if (event.toElement.className === "menu-btn") {
+            return;
+        } else {
+            $("#menu").css("display", "none");
+        }
+    });
+    $(document).on("mouseleave", "#menu", function () { // 移出菜单按钮
+        $("#menu").css("display", "none");
+    });
+    $(document).on("click", "#resend-btn", function () {
+        // 渲染到输入框
+        let text = $(this).attr("data-clipboard-text");
+        $("#textarea").val(text);
+        // 模拟点击事件
+        $("#send-btn").click();
+        // 光标回归
+        $("#textarea").focus();
+    });
+    $(document).on("mousewheel DOMMouseScroll", function(e) {
+        // 当鼠标滚动时，隐藏菜单
+        $("#menu").css("display", "none");
+    });
+
+
+
+</script>
 <script>
     MathJax.Hub.Config({
         showProcessingMessages: false, //关闭js加载过程信息
