@@ -24,7 +24,7 @@
 ## 使用方法
 1. 执行`pip install openai` `pip install flask`安装必要包，pyhon版本需大于等于3.7.1
 2. 打开`flask_main.py`文件
-3. 将`openai.api_key`填写为自己的api key
+3. 将`OPENAI_API_KEY`填写为自己的api key
 4. 将os.environ['HTTP_PROXY']和os.environ['HTTPS_PROXY']设置成代理，注意端口设置
 5. 执行`python flask_main.py`运行程序.若程序中未指定apikey还可以执行`OPANAI_API_KEY=XXXX python flask_main.py`来指定，其中XXXX为你的apikey
 6. 打开本地浏览器访问`127.0.0.1:5000`
