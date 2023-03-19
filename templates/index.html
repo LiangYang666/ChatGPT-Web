@@ -232,16 +232,14 @@
         {#markdown代码样式 包含行号#}
         .markdown pre {
             padding: 0.5em;
-            margin: 0.5em 0;
             overflow: auto;
-            background-color: #282c34;
-            color: #abb2bf;
+            background-color: #2b2b2b;
             border-radius: 4px;
         }
         .markdown pre code {
-            background-color: #282c34;
-            padding: .125rem .25rem;
-            color: #abb2bf;
+            background-color: #2b2b2b;
+            padding: .1rem .1rem;
+            color: #f8f8f2;
         }
         {#行内代码段样式#}
         .markdown code {
@@ -274,6 +272,10 @@
     <script src="{{ url_for('static', filename='js/marked.min.js') }}"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS_HTML"></script>
     <script src="https://cdn.staticfile.org/clipboard.js/2.0.4/clipboard.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.0/styles/a11y-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.0/highlight.min.js"></script>
+    <!-- and it's easy to individually load additional languages -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.0/languages/go.min.js"></script>
 
 </head>
 <body>
@@ -308,6 +310,24 @@
 
 
 </body>
+<script>
+    hljs.initHighlightingOnLoad();
+    // 设置marked
+    marked.marked.setOptions({
+        renderer: new marked.Renderer(),
+        highlight: function (code) {
+            return hljs.highlightAuto(code).value;
+        },
+        pedantic: false,
+        gfm: true,
+        tables: true,
+        breaks: false,
+        sanitize: false,
+        smartLists: true,
+        smartypants: false,
+        xhtml: false
+    });
+</script>
 <script>
     // 当鼠标移动到 bubble-left时显示复制按钮
     $(document).on("mouseover", ".bubble-left", function () {
