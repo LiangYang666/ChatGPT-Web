@@ -2,7 +2,8 @@
 ## 注册openai后送5美元，3个月内使用，API调用，0.2美分1000 token
 
 ## 演示动图
-![演示](https://user-images.githubusercontent.com/38237931/225797160-ad73260f-683e-4e85-9cab-8fc64175d7d6.gif)
+![动画3](https://user-images.githubusercontent.com/38237931/226183048-6d23ce78-c7e5-4d9b-8157-56625e312135.gif)
+
 
 
 ## 更新说明  
@@ -24,9 +25,9 @@
 ## 使用方法
 1. 执行`pip install openai` `pip install flask`安装必要包，pyhon版本需大于等于3.7.1
 2. 打开`flask_main.py`文件
-3. 将`OPENAI_API_KEY`填写为自己的api key
-4. 将os.environ['HTTP_PROXY']和os.environ['HTTPS_PROXY']设置成代理，注意端口设置
-5. 执行`python flask_main.py`运行程序.若程序中未指定apikey还可以执行`OPANAI_API_KEY=XXXX python flask_main.py`来指定，其中XXXX为你的apikey
+3. 将`OPENAI_API_KEY`填写为自己的api key,即将`OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")` 这一行改为`OPENAI_API_KEY = "sk-XXXX"`,其中`sk-XXXX`为你的apikey
+4. 将os.environ['HTTP_PROXY']和os.environ['HTTPS_PROXY']设置成你的代理，注意端口设置，例如clash默认为7890端口，另外如果clash不在本机需要设置代理软件允许局域网内访问
+5. 执行`python flask_main.py`运行程序.若程序中未指定apikey还可以执行`OPANAI_API_KEY=sk-XXXX python flask_main.py`来指定，其中sk-XXXX为你的apikey
 6. 打开本地浏览器访问`127.0.0.1:5000`
 
 
