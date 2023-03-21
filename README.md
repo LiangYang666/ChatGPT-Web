@@ -2,7 +2,8 @@
 ## 注册openai后送5美元，3个月内使用，API调用，0.2美分1000 token
 
 ## 演示动图
-![动画1](https://user-images.githubusercontent.com/38237931/226165755-dae3c92f-9c0c-4dea-95ee-2d21b7ae1643.gif)
+![动画3](https://user-images.githubusercontent.com/38237931/226183048-6d23ce78-c7e5-4d9b-8157-56625e312135.gif)
+
 
 
 ## 更新说明  
