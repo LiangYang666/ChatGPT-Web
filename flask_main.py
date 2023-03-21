@@ -13,16 +13,19 @@ import asyncio
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.urandom(24)
 
-os.environ['HTTP_PROXY'] = 'socks5://127.0.0.1:7890'
-os.environ['HTTPS_PROXY'] = 'socks5://127.0.0.1:7890'
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")  # 从环境变量中获取api_key,或直接设置api_key
+#  ******** 代理和API_KEY配置项，必须配置
+os.environ['HTTP_PROXY'] = 'socks5://127.0.0.1:7890'        # 设置代理时，主要注意端口，例如clash的默认端口为7890
+os.environ['HTTPS_PROXY'] = 'socks5://127.0.0.1:7890'       # 同理
+API_KEY = os.getenv("OPENAI_API_KEY")  # 不更改代表从环境变量获取key，可在此处直接设置为 API_KEY = "sk-xxxx" 其中sk-xxxx是你的apikey
 
-openai.api_key = OPENAI_API_KEY
-STREAM_FLAG = True  # 是否开启流式推送
-
+# ********* 功能性配置项，可适当调整
+CHAT_CONTEXT_NUMBER_MAX = 7  # 连续对话模式下的上下文最大数量 n，即开启连续对话模式后，将上传本条消息以及之前你和GPT对话的n-1条消息
 USER_SAVE_MAX = 12  # 设置最多存储12个用户，当用户过多时可适当调大
-chat_context_number_max = 5  # 连续对话模式下的上下文最大数量
+
+STREAM_FLAG = True  # 是否开启流式推送
+USER_DICT_FILE = "all_user_dict_v2.pkl"  # 用户信息存储文件（包含版本）
 lock = threading.Lock()  # 用于线程锁
+openai.api_key = API_KEY
 
 project_info = "## ChatGPT 网页版  \n" \
                "#### code from  \n" \
@@ -60,7 +63,7 @@ def get_message_context(message_history, have_chat_context, chat_with_history):
     """
     message_context = []
     if chat_with_history:
-        num = min([len(message_history), chat_context_number_max, have_chat_context])
+        num = min([len(message_history), CHAT_CONTEXT_NUMBER_MAX, have_chat_context])
         # 获取所有有效聊天记录
         valid_start = 0
         valid_num = 0
@@ -113,7 +116,7 @@ def get_response_stream_generate_from_ChatGPT_API(message_context, apikey, messa
     :return: 回复
     """
     if apikey is None:
-        apikey = OPENAI_API_KEY
+        apikey = API_KEY
 
     header = {"Content-Type": "application/json",
               "Authorization": "Bearer " + apikey}
@@ -451,7 +454,7 @@ async def save_all_user_dict():
     """
     await asyncio.sleep(0)
     lock.acquire()
-    with open("all_user_dict_v2.pkl", "wb") as f:
+    with open(USER_DICT_FILE, "wb") as f:
         pickle.dump(all_user_dict, f)
     # print("all_user_dict.pkl存储成功")
     lock.release()
@@ -561,8 +564,8 @@ def delete_history():
 def check_load_pickle():
     global all_user_dict
 
-    if os.path.exists("all_user_dict_v2.pkl"):
-        with open("all_user_dict_v2.pkl", "rb") as pickle_file:
+    if os.path.exists(USER_DICT_FILE):
+        with open(USER_DICT_FILE, "rb") as pickle_file:
             all_user_dict = pickle.load(pickle_file)
             all_user_dict.change_capacity(USER_SAVE_MAX)
         print(f"已加载上次存储的用户上下文，共有{len(all_user_dict)}用户, 分别是")
@@ -590,13 +593,18 @@ def check_load_pickle():
                 all_user_dict.put(user_id, user_dict)  # 更新
         asyncio.run(save_all_user_dict())
     else:
-        with open("all_user_dict_v2.pkl", "wb") as pickle_file:
+        with open(USER_DICT_FILE, "wb") as pickle_file:
             pickle.dump(all_user_dict, pickle_file)
         print("未检测到上次存储的用户上下文，已创建新的用户上下文")
 
+    # 判断all_user_dict是否为None且时LRUCache的对象
+    if all_user_dict is None or not isinstance(all_user_dict, LRUCache):
+        print("all_user_dict为空或不是LRUCache对象，已创建新的LRUCache对象")
+        all_user_dict = LRUCache(USER_SAVE_MAX)
+
 
 if __name__ == '__main__':
-    print("持久化存储文件路径为:", os.getcwd() + "/all_user_dict_v2.pkl")
+    print("持久化存储文件路径为:", os.path.join(os.getcwd(), USER_DICT_FILE))
     all_user_dict = LRUCache(USER_SAVE_MAX)
     check_load_pickle()
 

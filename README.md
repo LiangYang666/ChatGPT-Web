@@ -6,7 +6,8 @@
 
 
 
-## 更新说明  
+## 重要更新  
+> 2023.3.19: 代码高亮显示
 > 2023.3.17: 显示公式  
 > 2023.3.17: 类似于chatgpt官网，支持实时流获取，即逐字获取动态加载显示  
 > 2023.3.13: 类似于chatgpt官网，支持新建对话，单个用户可以管理多个对话  
@@ -25,28 +26,29 @@
 ## 使用方法
 1. 执行`pip install openai` `pip install flask`安装必要包，pyhon版本需大于等于3.7.1
 2. 打开`flask_main.py`文件
-3. 将`OPENAI_API_KEY`填写为自己的api key,即将`OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")` 这一行改为`OPENAI_API_KEY = "sk-XXXX"`,其中`sk-XXXX`为你的apikey
-4. 将os.environ['HTTP_PROXY']和os.environ['HTTPS_PROXY']设置成你的代理，注意端口设置，例如clash默认为7890端口，另外如果clash不在本机需要设置代理软件允许局域网内访问
-5. 执行`python flask_main.py`运行程序.若程序中未指定apikey还可以执行`OPANAI_API_KEY=sk-XXXX python flask_main.py`来指定，其中sk-XXXX为你的apikey
+4. 将`os.environ['HTTP_PROXY']`和`os.environ['HTTPS_PROXY']`设置成你的代理，注意端口设置，例如clash默认为7890端口，另外如果clash不在本机需要设置代理软件允许局域网内访问
+3. 将`API_KEY`填写为自己的api key,即改为`API_KEY = "sk-XXXX"`,其中`sk-XXXX`为你的apikey
+5. 执行`python flask_main.py`运行程序.若程序中未指定apikey也可以在终端执行时添加环境变量，如执行`OPANAI_API_KEY=sk-XXXX python flask_main.py`来运行，其中sk-XXXX为你的apikey
 6. 打开本地浏览器访问`127.0.0.1:5000`
 
 
 ## 介绍
 - 开启程序后进入如下页面  
-![image](https://user-images.githubusercontent.com/38237931/224631613-9330ead7-79f6-46dc-811f-62e504b78b67.png)  
+![image](https://user-images.githubusercontent.com/38237931/226513812-ff05e48f-64f2-465f-a8c2-d6ac41df46c2.png)
 - 直接输入已有用户id,或者输入new:xxx创建新id，这个id用于绑定会话，下次不同浏览器打开都可以恢复用户的聊天记录,一个浏览器31天内一般不会要求再次输入用户id，如下为创建一个新id，名为zs，下图为发送完成后自动刷新的用户页面，左侧会有一个默认对话  
 ![image](https://user-images.githubusercontent.com/38237931/224632635-3639e8bd-a6a6-4c1c-9c49-2c3d04c9ed3b.png)  
 - 代码中已经设置了apikey，但如果开放给别人用针对个别用户也可以按照说明设置用户专属apikey，这里就暂不设置专属的
 - 默认为普通对话模式，即每次发送都是仅对于该提问回答，可点击切换为连续对话模式，chatgpt将会联系上下文(之前的对话，程序中设置了最大5条记录)回复你，但意味着花费会更多money  
 - 用python写一个冒泡算法试试看，回车发送，shift+回车换行，然后问用java呢？会联系上下文回答 
-![image](https://user-images.githubusercontent.com/38237931/224633608-704b6de7-3e4f-47f3-b217-f95a65523dcf.png)
+![image](https://user-images.githubusercontent.com/38237931/226513646-fe3cd31d-3597-4c0c-aa54-fdb734916b85.png)
 - 还可以按如下添加对话
 ![image](https://user-images.githubusercontent.com/38237931/224634107-f9c43c94-f044-4323-913f-2141c081fc04.png)
-- 对话管理，当不使用该对话时，可以点击删除聊天记录，将会直接删除该对话，若当前为默认对话，则只会删除聊天记录
+- 对话管理，当不使用该对话时，可以点击删除对话，若当前为默认对话，则只可删除聊天记录
 
 ## TODO List
 - [ ] 界面优化
 - [ ] 优化代码显示
+- [x] 代码高亮显示
 - [x] 在连续对话模式下支持多人同时使用
 - [x] 重载历史记录
 - [x] 切换聊天模式和重置时提示
