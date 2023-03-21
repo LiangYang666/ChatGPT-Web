@@ -476,15 +476,15 @@
                 $("#chmod-btn").hide();
                 $(".chat-list").hide();
             } else {
+                $(".chat-list").append(html);
+                $(".chat-list").append(newchat);
+                // 将选中的selectedChat添加selected属性
+                $("#"+selectedChatId).addClass("selected");
                 if ($("#"+selectedChatId).data('name')!=='默认对话'){
                     $("#del-btn").html("删除对话");
                 } else {
                     $("#del-btn").html("删除聊天记录");
                 }
-                $(".chat-list").append(html);
-                $(".chat-list").append(newchat);
-                // 将选中的selectedChat添加selected属性
-                $("#"+selectedChatId).addClass("selected");
             }
 
         }
