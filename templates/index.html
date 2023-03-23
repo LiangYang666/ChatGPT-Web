@@ -292,6 +292,7 @@
             <div class="input-area">
                 <textarea name="text" id="textarea"></textarea>
                 <div class="button-area">
+                    <button id="stop-btn" class="talk_sub" style="display: none">停止生成</button>
                     <button id="del-btn" class="talk_sub">删除聊天记录</button>
                     <button id="chmod-btn" class="talk_sub">当前为普通对话</button>
                     <button id="send-btn" class="talk_sub">发 送</button>
@@ -582,7 +583,7 @@
         });
     }
     loadHistory();
-
+    let returnMessageAjax = null;
     function get_time_str(time) {
         let year = time.getFullYear(); //得到年份
         let month = time.getMonth()+1;//得到月份
@@ -621,7 +622,8 @@
         let chat_item = $('<div class="item item-left"><div class="avatar"><img src="./static/chatgpt.png" /></div><div class="bubble bubble-left markdown">正在等待回复</div></div>')
         $(".content").append(chat_item);
         $(".content").scrollTop($(".content")[0].scrollHeight);
-        $.ajax({
+        let get_times = 0;
+        returnMessageAjax = $.ajax({
             url: "/returnMessage",
             data: {
                 "send_message": text,
@@ -636,6 +638,10 @@
                     if (response.startsWith("url_redirect:")){
                         window.location.href=response.split(":")[1];
                     } else {
+                        get_times += 1;
+                        if (get_times === 2) {
+                            $("#stop-btn").show();
+                        }
                         let div =  document.createElement('div');
                         div.innerHTML = marked.marked(response);
                         MathJax.Hub.Typeset(div);
@@ -643,9 +649,29 @@
                         chat_item.find(".bubble").append(div);
                         $(".content").scrollTop($(".content")[0].scrollHeight);
                     }
+                },
+                onload: function (e) {
+                    $("#stop-btn").hide();
                 }
             },
+            timeout: 1000 * 60 * 2,
+            complete: function (XMLHttpRequest, status) {
+                if (status === 'timeout') {
+                    alert("请求超时");
+                }
+                $("#stop-btn").hide();
+            }
         });
+    });
+
+    $("#stop-btn").click(function (){
+        // 停止returnMessage请求
+        if (returnMessageAjax != null) {
+
+            returnMessageAjax.abort();
+            returnMessageAjax = null;
+        }
+        $("#stop-btn").hide();
     });
     $("#textarea").keydown(function (e) {
         if (e.keyCode === 13 && !e.shiftKey) {
