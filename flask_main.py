@@ -1,9 +1,8 @@
 import json
 
 import requests
-from flask import Flask, render_template, request, session, redirect, url_for
+from flask import Flask, render_template, request, session
 import os
-import openai
 import uuid
 from LRU_cache import LRUCache
 import threading
@@ -25,7 +24,6 @@ USER_SAVE_MAX = 12  # 设置最多存储12个用户，当用户过多时可适�
 STREAM_FLAG = True  # 是否开启流式推送
 USER_DICT_FILE = "all_user_dict_v2.pkl"  # 用户信息存储文件（包含版本）
 lock = threading.Lock()  # 用于线程锁
-openai.api_key = API_KEY
 
 project_info = "## ChatGPT 网页版  \n" \
                "#### code from  \n" \
@@ -40,16 +38,34 @@ def get_response_from_ChatGPT_API(message_context, apikey):
     :param message_context: 上下文
     :return: 回复
     """
+    if apikey is None:
+        apikey = API_KEY
+
+    header = {"Content-Type": "application/json",
+              "Authorization": "Bearer " + apikey}
+
+    data = {
+        "model": "gpt-3.5-turbo",
+        "messages": message_context
+    }
+    url = "https://api.openai.com/v1/chat/completions"
+
     try:
-        completion = openai.ChatCompletion.create(
-            api_key=apikey,
-            model="gpt-3.5-turbo",
-            messages=message_context
-        )
+        response = requests.post(url, headers=header, data=json.dumps(data))
+        response = response.json()
+        # 判断是否含 choices[0].message.content
+        if "choices" in response \
+                and len(response["choices"]) > 0 \
+                and "message" in response["choices"][0] \
+                and "content" in response["choices"][0]["message"]:
+            data = response["choices"][0]["message"]["content"]
+        else:
+            data = str(response)
+
     except Exception as e:
         print(e)
-        return "ChatGPT API error:\n" + str(e)
-    data = completion.choices[0].message.content.strip()
+        return str(e)
+
     return data
 
 
@@ -571,7 +587,7 @@ if __name__ == '__main__':
     all_user_dict = LRUCache(USER_SAVE_MAX)
     check_load_pickle()
 
-    if len(openai.api_key) == 0:
+    if len(API_KEY) == 0:
         # 退出程序
         print("请在openai官网注册账号，获取api_key填写至程序内或命令行参数中")
         exit()
