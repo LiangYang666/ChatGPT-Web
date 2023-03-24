@@ -78,6 +78,7 @@ def get_message_context(message_history, have_chat_context, chat_with_history):
     :return:
     """
     message_context = []
+    total = 0
     if chat_with_history:
         num = min([len(message_history), CHAT_CONTEXT_NUMBER_MAX, have_chat_context])
         # 获取所有有效聊天记录
@@ -95,8 +96,12 @@ def get_message_context(message_history, have_chat_context, chat_with_history):
             message = message_history[i]
             if message['role'] in {'assistant', 'user'}:
                 message_context.append(message)
+                total += len(message['content'])
     else:
         message_context.append(message_history[-1])
+        total += len(message_history[-1]['content'])
+
+    print(f"len(message_context): {len(message_context)} total: {total}",)
     return message_context
 
 
@@ -150,15 +155,14 @@ def get_response_stream_generate_from_ChatGPT_API(message_context, apikey, messa
 
         def generate():
             stream_content = str()
+            one_message = {"role": "assistant", "content": stream_content}
+            message_history.append(one_message)
             i = 0
             for line in response.iter_lines():
                 # print(str(line))
-                # line_json = json.loads(line)
-                # print(line_json)
                 line_str = str(line, encoding='utf-8')
                 if line_str.startswith("data:"):
                     if line_str.startswith("data: [DONE]"):
-                        message_history.append({"role": "assistant", "content": stream_content})
                         asyncio.run(save_all_user_dict())
                         break
                     line_json = json.loads(line_str[5:])
@@ -176,7 +180,7 @@ def get_response_stream_generate_from_ChatGPT_API(message_context, apikey, messa
                                         print(delta_content, end="")
                                     elif i == 40:
                                         print("......")
-                                    stream_content = stream_content + delta_content
+                                    one_message['content'] = one_message['content'] + delta_content
                                     yield delta_content
 
                 elif len(line_str.strip()) > 0:
@@ -194,6 +198,7 @@ def get_response_stream_generate_from_ChatGPT_API(message_context, apikey, messa
 
 def handle_messages_get_response_stream(message, apikey, message_history, have_chat_context, chat_with_history):
     message_history.append({"role": "user", "content": message})
+    asyncio.run(save_all_user_dict())
     message_context = get_message_context(message_history, have_chat_context, chat_with_history)
     generate = get_response_stream_generate_from_ChatGPT_API(message_context, apikey, message_history)
     return generate
