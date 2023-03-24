@@ -1,34 +1,31 @@
-# 使用ChatGPT最新API创建的聊天页面，模型回复效果与官网的ChatGPT一致，支持多用户使用，多对话管理，公式显示，流式逐字加载显示  
-## 注册openai后送5美元，3个月内使用，API调用，0.2美分1000 token
+# 使用ChatGPT最新API创建的聊天页面，模型回复效果与官网的ChatGPT一致
+注册openai后送5美元，3个月内使用，API调用，0.2美分1000 token  
+## 特性
+> python环境下可极简配置  
+> 支持多用户使用  
+> 多对话管理  
+> 公式显示  
+> 流式逐字加载显示 
+> 代码高亮
 
 ## 演示动图
 ![演示](https://user-images.githubusercontent.com/38237931/227176542-c924084c-8ceb-41cd-9e09-1f82e1d14366.gif)
-
-
-
-## 重要更新  
-> 2023.3.19: 代码高亮显示  
-> 2023.3.17: 显示公式  
-> 2023.3.17: 类似于chatgpt官网，支持实时流获取，即逐字获取动态加载显示  
-> 2023.3.13: 类似于chatgpt官网，支持新建对话，单个用户可以管理多个对话  
-> 2323.3.6: 会话与用户id绑定并保存用户信息，同一浏览器下次登陆时自动进入绑定的id，其余设备输入用户id后依然可以重载聊天记录  
-> 2323.3.6: 支持保存历史聊天记录，当重新打开会话时自动恢复聊天记录，使用pickle持久化存储，程序重启时依然可加载各用户聊天记录   
-> 2023.3.5: 支持markdown内容显示   
+  
 
 ## 使用前提
 > 1. 因国内IP被封或OpenAI API被墙，因此自己需要有代理，稍后需要配置  
-> 2. Python运行环境
+> 2. Python3运行环境
 > 2. 有openai账号，注册事项可以参考[此文章](https://juejin.cn/post/7173447848292253704)   
 > 3. 创建好api_key, 进入[OpenAI链接](https://platform.openai.com/),右上角点击，进入页面设置  
 ![image](https://user-images.githubusercontent.com/38237931/222461544-260ef350-2d05-486d-bf36-d078873b0f7a.png)
 
 
 ## 使用方法
-1. 执行`pip install openai` `pip install flask`安装必要包，pyhon版本需大于等于3.7.1
+1. 执行 `pip install flask`安装必要包
 2. 打开`flask_main.py`文件
 4. 将`os.environ['HTTP_PROXY']`和`os.environ['HTTPS_PROXY']`设置成你的代理，注意端口设置，例如clash默认为7890端口，另外如果clash不在本机需要设置代理软件允许局域网内访问
 3. 将`API_KEY`填写为自己的api key,即改为`API_KEY = "sk-XXXX"`,其中`sk-XXXX`为你的apikey
-5. 执行`python flask_main.py`运行程序.若程序中未指定apikey也可以在终端执行时添加环境变量，如执行`OPANAI_API_KEY=sk-XXXX python flask_main.py`来运行，其中sk-XXXX为你的apikey
+5. 执行`python flask_main.py`运行程序.若程序中未指定apikey也可以在终端执行时添加环境变量，如执行`OPANAI_API_KEY=sk-XXXX python flask_main.py`来运行，其中`sk-XXXX`为你的apikey
 6. 打开本地浏览器访问`127.0.0.1:5000`
 
 
@@ -45,13 +42,24 @@
 ![image](https://user-images.githubusercontent.com/38237931/224634107-f9c43c94-f044-4323-913f-2141c081fc04.png)
 - 对话管理，当不使用该对话时，可以点击删除对话，若当前为默认对话，则只可删除聊天记录
 
-## TODO List
-- [ ] 界面优化
-- [ ] 优化代码显示
-- [x] 代码高亮显示
+
+## 重要更新  
+> 2023.3.19: 代码高亮显示  
+> 2023.3.17: 显示公式  
+> 2023.3.17: 类似于chatgpt官网，支持实时流获取，即逐字获取动态加载显示  
+> 2023.3.13: 类似于chatgpt官网，支持新建对话，单个用户可以管理多个对话  
+> 2323.3.6: 会话与用户id绑定并保存用户信息，同一浏览器下次登陆时自动进入绑定的id，其余设备输入用户id后依然可以重载聊天记录  
+> 2323.3.6: 支持保存历史聊天记录，当重新打开会话时自动恢复聊天记录，使用pickle持久化存储，程序重启时依然可加载各用户聊天记录   
+> 2023.3.5: 支持markdown内容显示 
+
+## TODO List  
 - [x] 在连续对话模式下支持多人同时使用
 - [x] 重载历史记录
 - [x] 切换聊天模式和重置时提示
 - [x] 支持多对话管理
 - [x] 公式显示
 - [x] 流式拉取，逐字词动态实时显示
+- [x] 代码高亮显示
+- [ ] 查余额
+- [ ] 界面优化
+- [ ] 代码规范化，请求返回值规范、代码文件划分
