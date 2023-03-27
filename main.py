@@ -13,8 +13,6 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.urandom(24)
 
 #  ******** 代理和API_KEY配置项，必须配置
-os.environ['HTTP_PROXY'] = 'socks5://127.0.0.1:7890'        # 设置代理时，主要注意端口，例如clash的默认端口为7890
-os.environ['HTTPS_PROXY'] = 'socks5://127.0.0.1:7890'       # 同理
 API_KEY = os.getenv("OPENAI_API_KEY")  # 不更改代表从环境变量获取key，可在此处直接设置为 API_KEY = "sk-xxxx" 其中sk-xxxx是你的apikey
 
 # ********* 功能性配置项，可适当调整
