@@ -19,17 +19,29 @@
 > 3. 创建好api_key, 进入[OpenAI链接](https://platform.openai.com/),右上角点击，进入页面设置  
 ![image](https://user-images.githubusercontent.com/38237931/222461544-260ef350-2d05-486d-bf36-d078873b0f7a.png)
 
+## 部署方法
+分别介绍两种部署方法，选择一种即可，部署完成后直接跳转至后面的[使用介绍](https://github.com/LiangYang666/ChatGPT-Web/edit/main/README.md#使用介绍)继续即可
+<details>
+<summary>1. 本地源代码部署</summary>
 
-## 使用方法
-1. 执行 `pip install flask`安装必要包
-2. 打开`flask_main.py`文件
-4. 将`os.environ['HTTP_PROXY']`和`os.environ['HTTPS_PROXY']`设置成你的代理，注意端口设置，例如clash默认为7890端口，另外如果clash不在本机需要设置代理软件允许局域网内访问
-3. 将`API_KEY`填写为自己的api key,即改为`API_KEY = "sk-XXXX"`,其中`sk-XXXX`为你的apikey
-5. 执行`python flask_main.py`运行程序.若程序中未指定apikey也可以在终端执行时添加环境变量，如执行`OPANAI_API_KEY=sk-XXXX python flask_main.py`来运行，其中`sk-XXXX`为你的apikey
+### 本地源代码部署方法
+1. 执行 `pip install -r requirements.txt`安装必要包
+2. 打开`config.yaml`文件，配置HTTPS_PROXY和OPENAI_API_KEY，相关细节已在配置文件中描述
+5. 执行`python main.py`运行程序.若程序中未指定apikey也可以在终端执行时添加环境变量，如执行`OPANAI_API_KEY=sk-XXXX python main.py`来运行，其中`sk-XXXX`为你的apikey
 6. 打开本地浏览器访问`127.0.0.1:5000`
 
+</details>
 
-## 介绍
+<details>
+<summary>2. Railway 部署</summary>
+
+### Railway部署方法
+1. 
+
+</details>
+
+
+## 使用介绍
 - 开启程序后进入如下页面  
 ![image](https://user-images.githubusercontent.com/38237931/226513812-ff05e48f-64f2-465f-a8c2-d6ac41df46c2.png)
 - 直接输入已有用户id,或者输入new:xxx创建新id，这个id用于绑定会话，下次不同浏览器打开都可以恢复用户的聊天记录,一个浏览器31天内一般不会要求再次输入用户id，如下为创建一个新id，名为zs，下图为发送完成后自动刷新的用户页面，左侧会有一个默认对话  
