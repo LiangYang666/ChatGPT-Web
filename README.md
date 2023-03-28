@@ -1,4 +1,4 @@
-# 使用ChatGPT最新API创建的聊天页面，模型回复效果与官网的ChatGPT一致
+# 使用GPT-3.5 API创建的ChatGPT聊天页面，模型回复效果与官网的ChatGPT一致
 ## Star the [Repository](https://github.com/LiangYang666/ChatGPT-Web)  
 ## 特性
 > 极简配置  
