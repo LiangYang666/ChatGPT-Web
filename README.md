@@ -47,7 +47,7 @@
   ![image](https://user-images.githubusercontent.com/38237931/228187234-4a2b7003-e747-4a50-80fd-36a6f9c5deff.png)
   > 7. 点击查看日志，成功的一般显示如下  
   ![image](https://user-images.githubusercontent.com/38237931/228150419-47ea9ffd-2f8d-4851-a5bd-ed9c3d49b28d.png)  
-  > 8. 查看访问url，未生成可点击Generate Domain生成即可，使用该url即可访问  
+  > 8. 查看访问url，未生成可点击Generate Domain生成即可，当然如果你自己有域名，还可以添加你自己的自定义域名    
   ![image](https://user-images.githubusercontent.com/38237931/228151149-ab46e0cf-1936-4e9a-860a-4d82f70185d8.png)  
   > 9. 进入后如图，任何网络环境下只要输入url即可访问
   ![image](https://user-images.githubusercontent.com/38237931/228188680-4a802916-8719-448e-a532-94f275601990.png)
