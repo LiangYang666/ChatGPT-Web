@@ -13,7 +13,7 @@
   
 
 ## 使用前提
-> 1. 因国内IP被封或OpenAI API被墙，因此自己需要有代理，稍后需要配置，当使用railway部署时不需要有代理    
+> 1. 因国内IP被封或OpenAI API被墙，因此自己需要有代理，稍后需要配置，（若使用railway部署时不需要有代理)    
 > 2. 有openai账号，注册事项可以参考[此文章](https://juejin.cn/post/7173447848292253704)   
 > 3. 创建好api_key, 进入[OpenAI链接](https://platform.openai.com/),右上角点击，进入页面设置  
 ![image](https://user-images.githubusercontent.com/38237931/222461544-260ef350-2d05-486d-bf36-d078873b0f7a.png)
@@ -33,7 +33,7 @@
 <details>
 <summary>2. Railway部署（推荐，无需代理，云部署，通过url随时随地访问）</summary>  
   
-  > - 关于Railway：Railway是云容器提供商，你能够使用它部署你的应用，并使用url链接随时随地访问你的应用，Railway使用前提是你的GitHub账号满180天，绑定并验证后每月送5美元和500小时的使用时长
+  > - 关于Railway：Railway是云容器提供商，你能够使用它部署你的应用，并使用url链接随时随地访问你的应用，Railway使用前提是你的GitHub账号满180天，绑定并验证后每月送5美元和500小时的使用时长，大概21天，因此如果使用这种方式可以在某些不使用的时候停止你的容器  
   > 1. 首先将代码fork到你的github中
   > 2. 点击右侧[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new)，然后选择`Deploy from GitHub repo`，再选择`Configure GitHub App`，将会弹出新的窗口，在该窗口中选择`Only select repositories`，然后到下拉列表中选择刚才fork到你账号的仓库
   ![image](https://user-images.githubusercontent.com/38237931/228179892-340ab8e5-dc20-4365-80bb-8ecc2568a4a8.png)
