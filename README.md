@@ -2,6 +2,7 @@
 ## Star the [Repository](https://github.com/LiangYang666/ChatGPT-Web)  
 ## 特性
 > 极简配置  
+> 支持railway云部署  
 > 支持多用户使用  
 > 多对话管理  
 > 公式显示  
