@@ -598,13 +598,15 @@ def check_load_pickle():
         all_user_dict = LRUCache(USER_SAVE_MAX)
 
 
-if __name__ == '__main__':
-    print("持久化存储文件路径为:", os.path.join(os.getcwd(), USER_DICT_FILE))
-    all_user_dict = LRUCache(USER_SAVE_MAX)
-    check_load_pickle()
+print("持久化存储文件路径为:", os.path.join(os.getcwd(), USER_DICT_FILE))
+all_user_dict = LRUCache(USER_SAVE_MAX)
+check_load_pickle()
 
-    if len(API_KEY) == 0:
-        # 退出程序
-        print("请在openai官网注册账号，获取api_key填写至程序内或命令行参数中")
-        exit()
+if len(API_KEY) == 0:
+    # 退出程序
+    print("请在openai官网注册账号，获取api_key填写至程序内或命令行参数中")
+    exit()
+
+
+if __name__ == '__main__':
     app.run(host="0.0.0.0", port=PORT, debug=True)
