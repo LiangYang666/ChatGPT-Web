@@ -13,7 +13,6 @@ import yaml
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.urandom(24)
 
-
 if os.getenv("DEPLOY_SERVERLESS") is None:  # 如果不是云端部署
     with open("config.yaml", "r", encoding="utf-8") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
