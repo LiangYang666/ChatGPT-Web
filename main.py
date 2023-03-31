@@ -38,6 +38,8 @@ USER_SAVE_MAX = os.getenv("USER_SAVE_MAX", default=USER_SAVE_MAX)  # 如果环�
 
 STREAM_FLAG = True  # 是否开启流式推送
 USER_DICT_FILE = "all_user_dict_v2.pkl"  # 用户信息存储文件（包含版本）
+if os.getenv("DEPLOY_SERVERLESS") is not None:
+    USER_DICT_FILE = "/tmp/" + USER_DICT_FILE
 lock = threading.Lock()  # 用于线程锁
 
 project_info = "## ChatGPT 网页版    \n" \
