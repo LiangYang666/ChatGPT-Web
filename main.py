@@ -431,6 +431,8 @@ def return_message():
                 return url_redirect
         elif send_message.startswith("new:"):
             user_id = send_message.split(":")[1]
+            if user_id in all_user_dict:
+                return "用户id已存在，请重新输入或切换到已有用户id"
             session['user_id'] = user_id
             user_dict = new_user_dict(user_id, send_time)
             lock.acquire()
