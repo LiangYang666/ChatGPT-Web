@@ -408,6 +408,25 @@ def return_message():
             print("设置用户专属apikey:\t", apikey)
             return "设置用户专属apikey成功"
 
+        elif send_message == "查余额":
+            user_info = get_user_info(session.get('user_id'))
+            apikey = user_info.get('apikey')
+            head = ""
+            if apikey is not None:
+                head = "用户专属api key"
+            else:
+                head = "通用api key"
+                apikey = API_KEY
+            url = "https://api.openai.com/dashboard/billing/credit_grants"
+            headers = {
+                "Authorization": "Bearer " + apikey,
+                "Content-Type": "application/json"
+            }
+            response = requests.get(url, headers=headers)
+            if response.status_code == 200:
+                data = response.json()
+                # TODO
+            return response.text
         else:  # 处理聊天数据
             user_id = session.get('user_id')
             print(f"用户({user_id})发送消息:{send_message}")
