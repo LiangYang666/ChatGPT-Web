@@ -31,7 +31,7 @@ if os.getenv("OPENAI_API_KEY") is not None:     # 如果环境变量中设置了
     API_KEY = os.getenv("OPENAI_API_KEY")
 
 STREAM_FLAG = True  # 是否开启流式推送
-USER_DICT_FILE = "all_user_dict_v2.pkl"  # 用户信息存储文件（包含版本）
+USER_DICT_FILE = "all_user_dict_v2_copy.pkl"  # 用户信息存储文件（包含版本）
 lock = threading.Lock()  # 用于线程锁
 
 project_info = "## ChatGPT 网页版    \n" \
@@ -387,71 +387,77 @@ def return_message():
     url_redirect = "url_redirect:/"
     if send_message == "帮助":
         return "### 帮助\n" \
-               "1. 输入 new:xxx 创建新的用户id\n " \
-               "2. 聊天过程中输入 id:your_id 切换到已有用户id，新会话时无需加`id:`进入已有用户\n" \
-               "3. 聊天过程中输入 set_apikey:[your_apikey](https://platform.openai.com/account/api-keys) 设置用户专属apikey\n" \
-               "4. 输入`查余额`可获得余额信息及最近几天使用量\n" \
-               "5. 输入`帮助`查看帮助信息"
+               "1. 输入`new:xxx`创建新的用户id\n " \
+               "2. 输入`id:your_id`切换到已有用户id，新会话时无需加`id:`进入已有用户\n" \
+               "3. 输入`set_apikey:[your_apikey](https://platform.openai.com/account/api-keys)`设置用户专属apikey，`set_apikey:none`可删除专属key\n" \
+               "4. 输入`rename_id:xxx`可将当前用户id更改\n" \
+               "5. 输入`查余额`可获得余额信息及最近几天使用量\n" \
+               "6. 输入`帮助`查看帮助信息"
 
     if session.get('user_id') is None:  # 如果当前session未绑定用户
         print("当前会话为首次请求，用户输入:\t", send_message)
         if send_message.startswith("new:"):
-            user_id = send_message.split(":")[1]
-            if user_id in all_user_dict:
-                session['user_id'] = user_id
+            new_user_id = send_message.split(":")[1]
+            if new_user_id in all_user_dict:
+                session['user_id'] = new_user_id
                 return url_redirect
-            user_dict = new_user_dict(user_id, send_time)
+            user_dict = new_user_dict(new_user_id, send_time)
             lock.acquire()
-            all_user_dict.put(user_id, user_dict)  # 默认普通对话
+            all_user_dict.put(new_user_id, user_dict)  # 默认普通对话
             lock.release()
-            print("创建新的用户id:\t", user_id)
-            session['user_id'] = user_id
+            print("创建新的用户id:\t", new_user_id)
+            session['user_id'] = new_user_id
             return url_redirect
         else:
-            user_id = send_message
-            user_info = get_user_info(user_id)
+            new_user_id = send_message
+            user_info = get_user_info(new_user_id)
             if user_info is None:
                 return "用户id不存在，请重新输入或创建新的用户id"
             else:
-                session['user_id'] = user_id
-                print("已有用户id:\t", user_id)
+                session['user_id'] = new_user_id
+                print("已有用户id:\t", new_user_id)
                 # 重定向到index
                 return url_redirect
     else:  # 当存在用户id时
         if send_message.startswith("id:"):
-            user_id = send_message.split(":")[1].strip()
-            user_info = get_user_info(user_id)
+            new_user_id = send_message.split(":")[1].strip()
+            user_info = get_user_info(new_user_id)
             if user_info is None:
                 return "用户id不存在，请重新输入或创建新的用户id"
             else:
-                session['user_id'] = user_id
-                print("切换到已有用户id:\t", user_id)
+                session['user_id'] = new_user_id
+                print("切换到已有用户id:\t", new_user_id)
                 # 重定向到index
                 return url_redirect
         elif send_message.startswith("new:"):
-            user_id = send_message.split(":")[1]
-            session['user_id'] = user_id
-            user_dict = new_user_dict(user_id, send_time)
+            new_user_id = send_message.split(":")[1]
+            session['user_id'] = new_user_id
+            user_dict = new_user_dict(new_user_id, send_time)
             lock.acquire()
-            all_user_dict.put(user_id, user_dict)
+            all_user_dict.put(new_user_id, user_dict)
             lock.release()
-            print("创建新的用户id:\t", user_id)
+            print("创建新的用户id:\t", new_user_id)
             return url_redirect
         elif send_message.startswith("delete:"):  # 删除用户
-            user_id = send_message.split(":")[1]
-            if user_id != session.get('user_id'):
+            new_user_id = send_message.split(":")[1]
+            if new_user_id != session.get('user_id'):
                 return "只能删除当前会话的用户id"
             else:
                 lock.acquire()
-                all_user_dict.delete(user_id)
+                all_user_dict.delete(new_user_id)
                 lock.release()
                 session['user_id'] = None
-                print("删除用户id:\t", user_id)
+                print("删除用户id:\t", new_user_id)
                 # 异步存储all_user_dict
                 asyncio.run(save_all_user_dict())
                 return url_redirect
         elif send_message.startswith("set_apikey:"):
             apikey = send_message.split(":")[1]
+            if apikey == "none":
+                user_info = get_user_info(session.get('user_id'))
+                user_info['apikey'] = None
+                print("删除用户专属apikey")
+                return "删除用户专属apikey成功"
             user_info = get_user_info(session.get('user_id'))
             user_info['apikey'] = apikey
             print("设置用户专属apikey:\t", apikey)
@@ -461,10 +467,24 @@ def return_message():
             user_info = get_user_info(session.get('user_id'))
             apikey = user_info.get('apikey')
             return get_balance(apikey)
+        elif send_message.startswith("rename_id:"):
+            new_user_id = send_message.split(":")[1]
+            user_info = get_user_info(session.get('user_id'))
+            if new_user_id in all_user_dict:
+                return "用户id已存在，请重新输入"
+            else:
+                lock.acquire()
+                all_user_dict.delete(session['user_id'])
+                all_user_dict.put(new_user_id, user_info)
+                lock.release()
+                session['user_id'] = new_user_id
+                asyncio.run(save_all_user_dict())
+                print("修改用户id:\t", new_user_id)
+                return f"修改成功,请牢记新的用户id为:{new_user_id}"
         else:  # 处理聊天数据
-            user_id = session.get('user_id')
-            print(f"用户({user_id})发送消息:{send_message}")
-            user_info = get_user_info(user_id)
+            new_user_id = session.get('user_id')
+            print(f"用户({new_user_id})发送消息:{send_message}")
+            user_info = get_user_info(new_user_id)
             chat_id = user_info['selected_chat_id']
             messages_history = user_info['chats'][chat_id]['messages_history']
             chat_with_history = user_info['chats'][chat_id]['chat_with_history']
