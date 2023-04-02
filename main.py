@@ -387,11 +387,12 @@ def return_message():
     url_redirect = "url_redirect:/"
     if send_message == "帮助":
         return "### 帮助\n" \
-               "1. 输入 new:xxx 创建新的用户id\n " \
-               "2. 聊天过程中输入 id:your_id 切换到已有用户id，新会话时无需加`id:`进入已有用户\n" \
-               "3. 聊天过程中输入 set_apikey:[your_apikey](https://platform.openai.com/account/api-keys) 设置用户专属apikey\n" \
-               "4. 输入`查余额`可获得余额信息及最近几天使用量\n" \
-               "5. 输入`帮助`查看帮助信息"
+               "1. 输入`new:xxx`创建新的用户id\n " \
+               "2. 输入`id:your_id`切换到已有用户id，新会话时无需加`id:`进入已有用户\n" \
+               "3. 输入`set_apikey:[your_apikey](https://platform.openai.com/account/api-keys)`设置用户专属apikey，`set_apikey:none`可删除专属key\n" \
+               "4. 输入`rename_id:xxx`可将当前用户id更改\n" \
+               "5. 输入`查余额`可获得余额信息及最近几天使用量\n" \
+               "6. 输入`帮助`查看帮助信息"
 
     if session.get('user_id') is None:  # 如果当前session未绑定用户
         print("当前会话为首次请求，用户输入:\t", send_message)
@@ -456,7 +457,20 @@ def return_message():
             user_info['apikey'] = apikey
             print("设置用户专属apikey:\t", apikey)
             return "设置用户专属apikey成功"
-
+        elif send_message.startswith("rename_id:"):
+            new_user_id = send_message.split(":")[1]
+            user_info = get_user_info(session.get('user_id'))
+            if new_user_id in all_user_dict:
+                return "用户id已存在，请重新输入"
+            else:
+                lock.acquire()
+                all_user_dict.delete(session['user_id'])
+                all_user_dict.put(new_user_id, user_info)
+                lock.release()
+                session['user_id'] = new_user_id
+                asyncio.run(save_all_user_dict())
+                print("修改用户id:\t", new_user_id)
+                return f"修改成功,请牢记新的用户id为:{new_user_id}"
         elif send_message == "查余额":
             user_info = get_user_info(session.get('user_id'))
             apikey = user_info.get('apikey')
