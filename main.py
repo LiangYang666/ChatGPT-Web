@@ -676,4 +676,4 @@ if __name__ == '__main__':
         # 退出程序
         print("请在openai官网注册账号，获取api_key填写至程序内或命令行参数中")
         exit()
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    app.run(host="0.0.0.0", port=PORT, debug=False)
