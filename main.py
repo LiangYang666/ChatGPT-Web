@@ -673,6 +673,8 @@ def select_chat():
     :return:
     """
     chat_id = request.args.get("id")
+    if DEPLOY_ON_VERCEL and DETA_KEY is None:
+        return {"code": 200, "msg": "选择聊天对象成功"}
     check_session(session)
     if not check_user_bind(session):
         return {"code": -1, "msg": "请先创建或输入已有用户id"}
@@ -690,12 +692,15 @@ def new_chat():
     """
     name = request.args.get("name")
     time = request.args.get("time")
+    new_chat_id = request.args.get("chat_id")
+    if DEPLOY_ON_VERCEL and DETA_KEY is None:
+        return {"code": 200, "data": {"name": name, "id": new_chat_id, "selected": True}}
     check_session(session)
     if not check_user_bind(session):
         return {"code": -1, "msg": "请先创建或输入已有用户id"}
     user_id = session.get('user_id')
     user_info = get_user_info(user_id)
-    new_chat_id = str(uuid.uuid1())
+    # new_chat_id = str(uuid.uuid1())
     user_info['selected_chat_id'] = new_chat_id
     user_info['chats'][new_chat_id] = new_chat_dict(user_id, name, time)
     print("新建聊天对象")
@@ -708,6 +713,8 @@ def delete_history():
     清空上下文
     :return:
     """
+    if DEPLOY_ON_VERCEL and DETA_KEY is None:
+        return "2"
     check_session(session)
     if not check_user_bind(session):
         print("请先创建或输入已有用户id")
