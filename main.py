@@ -1,3 +1,4 @@
+import datetime
 import json
 
 import requests
@@ -13,22 +14,18 @@ import yaml
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.urandom(24)
 
-if os.getenv("DEPLOY_SERVERLESS") is None:  # 如果不是云端部署
-    with open("config.yaml", "r", encoding="utf-8") as f:
-        config = yaml.load(f, Loader=yaml.FullLoader)
-        if 'HTTPS_PROXY' in config:
-            if os.environ.get('HTTPS_PROXY') is None:   # 优先使用环境变量中的代理，若环境变量中没有代理，则使用配置文件中的代理
-                os.environ['HTTPS_PROXY'] = config['HTTPS_PROXY']
-        PORT = config['PORT']
-        API_KEY = config['OPENAI_API_KEY']
-        CHAT_CONTEXT_NUMBER_MAX = config['CHAT_CONTEXT_NUMBER_MAX']     # 连续对话模式下的上下文最大数量 n，即开启连续对话模式后，将上传本条消息以及之前你和GPT对话的n-1条消息
-        USER_SAVE_MAX = config['USER_SAVE_MAX']     # 设置最多存储n个用户，当用户过多时可适当调大
-else:
-    PORT = 5000
-    API_KEY = ""
-    CHAT_CONTEXT_NUMBER_MAX = 5
-    USER_SAVE_MAX = 20
+with open("config.yaml", "r", encoding="utf-8") as f:
+    config = yaml.load(f, Loader=yaml.FullLoader)
+    if 'HTTPS_PROXY' in config:
+        if os.environ.get('HTTPS_PROXY') is None:   # 优先使用环境变量中的代理，若环境变量中没有代理，则使用配置文件中的代理
+            os.environ['HTTPS_PROXY'] = config['HTTPS_PROXY']
+    PORT = config['PORT']
+    API_KEY = config['OPENAI_API_KEY']
+    CHAT_CONTEXT_NUMBER_MAX = config['CHAT_CONTEXT_NUMBER_MAX']     # 连续对话模式下的上下文最大数量 n，即开启连续对话模式后，将上传本条消息以及之前你和GPT对话的n-1条消息
+    USER_SAVE_MAX = config['USER_SAVE_MAX']     # 设置最多存储n个用户，当用户过多时可适当调大
 
+if os.getenv("DEPLOY_ON_RAILWAY") is not None:  # 如果是在Railway上部署，需要删除代理
+    os.environ.pop('HTTPS_PROXY', None)
 
 API_KEY = os.getenv("OPENAI_API_KEY", default=API_KEY)  # 如果环境变量中设置了OPENAI_API_KEY，则使用环境变量中的OPENAI_API_KEY
 PORT = os.getenv("PORT", default=PORT)  # 如果环境变量中设置了PORT，则使用环境变量中的PORT
@@ -336,6 +333,53 @@ def new_user_dict(user_id, send_time):
     return user_dict
 
 
+def get_balance(apikey):
+    head = ""
+    if apikey is not None:
+        head = "###  用户专属api key余额  \n"
+    else:
+        head = "### 通用api key  \n"
+        apikey = API_KEY
+
+    subscription_url = "https://api.openai.com/v1/dashboard/billing/subscription"
+    headers = {
+        "Authorization": "Bearer " + apikey,
+        "Content-Type": "application/json"
+    }
+    subscription_response = requests.get(subscription_url, headers=headers)
+    if subscription_response.status_code == 200:
+        data = subscription_response.json()
+        total = data.get("hard_limit_usd")
+    else:
+        return head+subscription_response.text
+
+    # end_date设置为今天日期+1
+    end_date = (datetime.datetime.now() + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
+    billing_url = "https://api.openai.com/v1/dashboard/billing/usage?start_date=2023-01-02&end_date=" + end_date
+    billing_response = requests.get(billing_url, headers=headers)
+    if billing_response.status_code == 200:
+        data = billing_response.json()
+        total_usage = data.get("total_usage") / 100
+        daily_costs = data.get("daily_costs")
+        days = min(5, len(daily_costs))
+        recent = f"##### 最近{days}天使用情况  \n"
+        for i in range(days):
+            cur = daily_costs[-i-1]
+            date = datetime.datetime.fromtimestamp(cur.get("timestamp")).strftime("%Y-%m-%d")
+            line_items = cur.get("line_items")
+            cost = 0
+            for item in line_items:
+                cost += item.get("cost")
+            recent += f"\t{date}\t{cost / 100} \n"
+    else:
+        return head+billing_response.text
+
+    return head+f"\n#### 总额:\t{total:.4f}  \n" \
+                f"#### 已用:\t{total_usage:.4f}  \n" \
+                f"#### 剩余:\t{total-total_usage:.4f}  \n" \
+                f"\n"+recent
+
+
 @app.route('/returnMessage', methods=['GET', 'POST'])
 def return_message():
     """
@@ -348,10 +392,12 @@ def return_message():
     url_redirect = "url_redirect:/"
     if send_message == "帮助":
         return "### 帮助\n" \
-               "1. 输入 new:xxx 创建新的用户id\n " \
-               "2. 聊天过程中输入 id:your_id 切换到已有用户id，新会话时无需加`id:`进入已有用户\n" \
-               "3. 聊天过程中输入 set_apikey:[your_apikey](https://platform.openai.com/account/api-keys) 设置用户专属apikey\n" \
-               "4. 输入`帮助`查看帮助信息"
+               "1. 输入`new:xxx`创建新的用户id\n " \
+               "2. 输入`id:your_id`切换到已有用户id，新会话时无需加`id:`进入已有用户\n" \
+               "3. 输入`set_apikey:`[your_apikey](https://platform.openai.com/account/api-keys)设置用户专属apikey，`set_apikey:none`可删除专属key\n" \
+               "4. 输入`rename_id:xxx`可将当前用户id更改\n" \
+               "5. 输入`查余额`可获得余额信息及最近几天使用量\n" \
+               "6. 输入`帮助`查看帮助信息"
 
     if session.get('user_id') is None:  # 如果当前session未绑定用户
         print("当前会话为首次请求，用户输入:\t", send_message)
@@ -390,6 +436,8 @@ def return_message():
                 return url_redirect
         elif send_message.startswith("new:"):
             user_id = send_message.split(":")[1]
+            if user_id in all_user_dict:
+                return "用户id已存在，请重新输入或切换到已有用户id"
             session['user_id'] = user_id
             user_dict = new_user_dict(user_id, send_time)
             lock.acquire()
@@ -416,7 +464,24 @@ def return_message():
             user_info['apikey'] = apikey
             print("设置用户专属apikey:\t", apikey)
             return "设置用户专属apikey成功"
-
+        elif send_message.startswith("rename_id:"):
+            new_user_id = send_message.split(":")[1]
+            user_info = get_user_info(session.get('user_id'))
+            if new_user_id in all_user_dict:
+                return "用户id已存在，请重新输入"
+            else:
+                lock.acquire()
+                all_user_dict.delete(session['user_id'])
+                all_user_dict.put(new_user_id, user_info)
+                lock.release()
+                session['user_id'] = new_user_id
+                asyncio.run(save_all_user_dict())
+                print("修改用户id:\t", new_user_id)
+                return f"修改成功,请牢记新的用户id为:{new_user_id}"
+        elif send_message == "查余额":
+            user_info = get_user_info(session.get('user_id'))
+            apikey = user_info.get('apikey')
+            return get_balance(apikey)
         else:  # 处理聊天数据
             user_id = session.get('user_id')
             print(f"用户({user_id})发送消息:{send_message}")

@@ -2,11 +2,13 @@
 ## Star the [Repository](https://github.com/LiangYang666/ChatGPT-Web)  
 ## 特性
 > 极简配置  
+> 支持railway云部署  
 > 支持多用户使用  
 > 多对话管理  
 > 公式显示  
-> 流式逐字加载显示 
-> 代码高亮
+> 流式逐字加载显示  
+> 代码高亮  
+> 查余额  
 
 ## 演示动图
 ![演示](https://user-images.githubusercontent.com/38237931/227176542-c924084c-8ceb-41cd-9e09-1f82e1d14366.gif)
@@ -23,7 +25,7 @@
 <details>
 <summary>1. 本地源代码部署（推荐，方便更新，需要有代理）</summary>
 
-> 前提：python3运行环境
+> 前提：python3.7及以上运行环境
 > 1. 执行 `pip install -r requirements.txt`安装必要包
 > 2. 打开`config.yaml`文件，配置HTTPS_PROXY和OPENAI_API_KEY，相关细节已在配置文件中描述
 > 5. 执行`python main.py`运行程序.若程序中未指定apikey也可以在终端执行时添加环境变量，如执行`OPANAI_API_KEY=sk-XXXX python main.py`来运行，其中`sk-XXXX`为你的apikey
@@ -33,7 +35,7 @@
 <details>
 <summary>2. Railway部署（推荐，无需代理，云部署，通过url随时随地访问）</summary>  
   
-  > - 关于Railway：Railway是云容器提供商，你能够使用它部署你的应用，并使用url链接随时随地访问你的应用，Railway使用前提是你的GitHub账号满180天，绑定并验证后每月送5美元和500小时的使用时长，大概21天，因此如果使用这种方式可以在某些不使用的时候停止你的容器  
+  > - 关于Railway：Railway是云容器提供商，你能够使用它部署你的应用，并使用url链接随时随地访问你的应用，Railway使用前提是你的GitHub账号满180天，绑定并验证后每月送5美元和500小时的使用时长，大概21天，因此如果使用这种方式需要在某些不使用的时段停止你的容器  
   > 1. 首先将代码fork到你的github中
   > 2. 点击右侧[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new)，然后选择`Deploy from GitHub repo`，再选择`Configure GitHub App`，将会弹出新的窗口，在该窗口中选择`Only select repositories`，然后到下拉列表中选择刚才fork到你账号的仓库
   ![image](https://user-images.githubusercontent.com/38237931/228179892-340ab8e5-dc20-4365-80bb-8ecc2568a4a8.png)
@@ -75,7 +77,7 @@
 </details>
 
 <details>
-<summary>4. 可执行文件部署（推荐python运行环境使用，需要自己有代理）</summary>
+<summary>4. 可执行文件部署（推荐无python运行环境使用，需要自己有代理）</summary>
 
 待补充
 
@@ -119,6 +121,6 @@
 - [x] 公式显示
 - [x] 流式拉取，逐字词动态实时显示
 - [x] 代码高亮显示
-- [ ] 查余额
+- [x] 查余额
 - [ ] 界面优化
 - [ ] 代码规范化，请求返回值规范、代码文件划分
