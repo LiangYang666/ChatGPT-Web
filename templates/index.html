@@ -441,6 +441,7 @@
     let newchat =  $("#newchat");
 
     function getMode() {
+        // TODO 弃用
         $.ajax({
             url: "/getMode",
             type: "Get",
@@ -456,9 +457,43 @@
         })
     }
 
-    getMode();
+    function generateUUID() {
+      let uuid = '', i, random
+      for (i = 0; i < 32; i++) {
+        random = Math.random() * 16 | 0
+        if (i === 8 || i === 12 || i === 16 || i === 20) {
+          uuid += '-'
+        }
+        uuid += (i === 12 ? 4 : (i === 16 ? (random & 3 | 8) : random)).toString(16)
+      }
+      return uuid
+    }
 
-    let selectedChatId;
+    console.log(generateUUID()) // 输出随机UUID
+
+    // getMode();
+
+    let selectedChatId = generateUUID();
+    let config = {"userId": null, "password": "123456", "apikey": null, "chat_context_number": 5,
+        "model_config": {"model": "gpt-3.5-turbo", "temperature": 0.9, "max_tokens": 2000}};
+    let model_config = {"model": "gpt-3.5-turbo", "temperature": 0.9, "max_tokens": 2000};
+    let chats = [{"id": selectedChatId, "name": "默认对话", "selected": true, "mode": "continuous", "memory_summarize": "你是一个AI助手", "last_summarize_index": 0}];
+    let messages_of_chats = {[selectedChatId]: []};
+    if (localStorage.getItem("chats") !== null) {
+        chats = JSON.parse(localStorage.getItem("chats"));
+    } else {
+        localStorage.setItem("chats", JSON.stringify(chats));
+    }
+    if (localStorage.getItem("config") !== null) {
+        config = JSON.parse(localStorage.getItem("config"));
+    } else {
+        localStorage.setItem("config", JSON.stringify(config));
+    }
+    if (localStorage.getItem("messages_of_chats") !== null) {
+        messages_of_chats = JSON.parse(localStorage.getItem("messages_of_chats"));
+    } else {
+        localStorage.setItem("messages_of_chats", JSON.stringify(messages_of_chats));
+    }
 
     $.ajax({
         url: "/loadChats",
@@ -466,13 +501,21 @@
         dataType: "json",
         success: function (data) {
             console.log(data);
-            let chats = data.data;
+            if(data.code === 200){
+                chats = data.data;
+                localStorage.setItem("chats", JSON.stringify(chats));
+            }
             let html = "";
             for (let i = 0; i < chats.length; i++) {
                 console.log(chats[i].name)
                 console.log(chats[i].selected)
                 if(chats[i].selected === true){
                     selectedChatId = chats[i].id;
+                    if(chats[i]["mode"]==="normal"){
+                        $("#chmod-btn").text("当前为普通对话");
+                    } else {
+                        $("#chmod-btn").text("当前为连续对话");
+                    }
                 }
                 html += '<div class="chat" id='+chats[i].id+' data-name='+chats[i].name+' data-selected='+chats[i].selected+'>' + chats[i].name + '</div>';
             }
@@ -565,14 +608,24 @@
             dataType: "json",
             success: function (data) {
                 console.log(data);
-                let messages = data.data;
+                let messages = [];
+                if (data.code===200){
+                    messages = data.data;
+                    messages_of_chats = {};
+                    messages_of_chats[selectedChatId] = data.data;
+                } else {
+                    if (messages_of_chats[selectedChatId].length===0){
+                        messages_of_chats[selectedChatId] = data.data;
+                    }
+                    messages = messages_of_chats[selectedChatId];
+                }
                 var html = "";
                 for (var i = 0; i < messages.length; i++) {
                     if (messages[i].role === "user") {
                         html += '<div class="item item-right"><div class="bubble bubble-right">' + messages[i].content + '</div><div class="avatar"><img src="./static/people.jpg" /></div></div>';
                     } else if(messages[i].role === "assistant"){
                         html += '<div class="item item-left"><div class="avatar"><img src="./static/chatgpt.png" /></div><div class="bubble bubble-left markdown">' + marked.marked(messages[i].content) + '</div></div>';
-                    } else if (messages[i].role === "system") {
+                    } else if (messages[i].role === "web-system") {
                         html += '<div class="item item-center"><span>' + messages[i].content + '</span></div>';
                     }
                 }
@@ -596,6 +649,15 @@
     }
     let last_time = 0
 
+    function getSelectedChatInfo() {
+        for(let i=0;i<chats.length;i++){
+            if (chats[i].id===selectedChatId){
+                return chats[i];
+            }
+        }
+        return null;
+    }
+
     $("#send-btn").click(function () {
         console.log("click")
         var text = $("#textarea").val();
@@ -607,12 +669,14 @@
         }
         let html = ''
         let send_time = new Date();
-        let send_time_str = '';
+        let send_time_str = get_time_str(send_time);
+        let display_time = false;
         if (send_time.getTime() - last_time > 1000 * 60 * 5) {
             // 以'%Y年%#m月%#d日 %H:%M'格式显示时间
             html += '<div class="item item-center"><span>' + get_time_str(send_time) + '</span></div>';
             last_time = send_time.getTime();
-            send_time_str = get_time_str(send_time);
+            display_time = true;
+
         }
         html += '<div class="item item-right"><div class="bubble bubble-right markdown">' + marked.marked(text) + '</div><div class="avatar"><img src="./static/people.jpg" /></div></div>';
         $(".content").append(html);
@@ -623,17 +687,59 @@
         $(".content").append(chat_item);
         $(".content").scrollTop($(".content")[0].scrollHeight);
         let get_times = 0;
+        messages_of_chats[selectedChatId].push({"role": "user", "content": text,"send_time": send_time_str, "display_time": display_time})
+
+        let start_index = 0;
+        let get_total = 0;
+        for (let i=messages_of_chats[selectedChatId].length-1;i>=1;i--){
+            let role = messages_of_chats[selectedChatId][i].role;
+            if (role === "user" || role === "assistant"){
+                start_index = i;
+                get_total += 1;
+                if (get_total === config.chat_context_number){
+                    break;
+                }
+            }
+        }
+
+        let message_contexts = [];
+        let chat_info = getSelectedChatInfo();
+        if("memory_summarize" in chat_info){
+            message_contexts = [{"role": "system", "content": "历史聊天记录前情提要总结："+ chat_info.memory_summarize}];
+        }
+        for (let i=start_index;i<messages_of_chats[selectedChatId].length;i++){
+            let role = messages_of_chats[selectedChatId][i].role;
+            if (role === "user" || role === "assistant"){
+                message_contexts.push(messages_of_chats[selectedChatId][i]);
+            }
+        }
+
+        let request_data = {
+                "messages": message_contexts,
+                "max_tokens": 2000,
+                "model": "gpt-3.5-turbo",
+                "temperature": 0.9,
+                "stream": true,
+                "continues_chat": true,
+                "chat_id": selectedChatId,
+        };
+        console.log("[Request]");
+        console.log(request_data);
+        let response_text =  "";
         returnMessageAjax = $.ajax({
             url: "/returnMessage",
-            data: {
-                "send_message": text,
-                "send_time": send_time_str   // 当为空时，即告知后端不用存储
+            headers: {
+                "Content-Type": "application/json",
+                "user_id": config.userId,
+                "password": config.password,
             },
+            data: JSON.stringify(request_data),
             type: "Post",
             dataType: "json",
             xhrFields: {
                 onprogress: function (e) {
                     let response = e.currentTarget.response;
+                    response_text = response;
                     // console.log(response);
                     if (response.startsWith("url_redirect:")){
                         window.location.href=response.split(":")[1];
@@ -655,14 +761,89 @@
                 }
             },
             timeout: 1000 * 60 * 2,
-            complete: function (XMLHttpRequest, status) {
+            complete: function (XMLHttpRequest, status, e) {
                 if (status === 'timeout') {
                     alert("请求超时");
                 }
                 $("#stop-btn").hide();
+                messages_of_chats[selectedChatId].push({"role": "assistant", "content": response_text, "send_time": get_time_str(new Date()), "display_time": false});
+                localStorage.setItem("messages_of_chats", JSON.stringify(messages_of_chats));
+                getSummarize();
             }
         });
     });
+
+    function getSummarize(){
+        let summarize = "";
+        let chat_info = getSelectedChatInfo();
+        if("memory_summarize" in chat_info){
+            summarize = chat_info.memory_summarize;
+        } else {
+            chat_info["memory_summarize"] = "";
+        }
+        let message_contexts = [{"role": "system", "content": "历史聊天记录前情提要总结："+ summarize }];
+        let start_index = 0;
+        if("last_summarize_index" in chat_info){
+            start_index = chat_info["last_summarize_index"]+1;
+        } else {
+            chat_info["last_summarize_index"] = 0;
+        }
+        let end_index = messages_of_chats[selectedChatId].length-config.chat_context_number+1;
+        if(end_index-start_index>5){  // 过长截断
+            start_index = end_index-5;
+        }
+        if(start_index<1){
+            start_index = 1;
+        }
+        for (let i = start_index; i <end_index; i++) {
+            let role = messages_of_chats[selectedChatId][i].role;
+            if (role === "user" || role === "assistant") {
+                message_contexts.push(messages_of_chats[selectedChatId][i]);
+            }
+        }
+        if (message_contexts.length===1){       // 如果没有需要总结的内容，直接返回
+            return;
+        }
+        message_contexts.push({"role": "system", "content": "简要总结一下你和用户的对话，用作后续的上下文提示 prompt，控制在 50 字以内", "send_time": get_time_str(new Date()), "display_time": false})
+        let request_data = {
+                "messages": message_contexts,
+                "max_tokens": 2000,
+                "model": "gpt-3.5-turbo",
+                "temperature": 0.9,
+                "stream": true,
+                "continues_chat": true,
+                "chat_id": selectedChatId,
+        };
+        console.log("[Memory Request]");
+        console.log(request_data);
+        let response_text =  "";
+        $.ajax({
+            url: "/returnMessage",
+            headers: {
+                "Content-Type": "application/json",
+                "user_id": config.userId,
+                "password": config.password,
+            },
+            data: JSON.stringify(request_data),
+            type: "Post",
+            dataType: "json",
+            xhrFields: {
+                onprogress: function (e) {
+                    response_text = e.currentTarget.response;
+                },
+            },
+            complete: function (XMLHttpRequest, status, e) {
+                if (status === 'timeout') {
+                    alert("请求超时");
+                }
+                chat_info["memory_summarize"] = response_text;
+                chat_info["last_summarize_index"] = end_index-1;
+                console.log("[Memory Response]");
+                console.log(response_text);
+            }
+        })
+
+    }
 
     $("#stop-btn").click(function (){
         // 停止returnMessage请求
