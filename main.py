@@ -62,11 +62,16 @@ project_info = "## ChatGPT 网页版    \n" \
                "发送`帮助`可获取帮助  \n"
 
 
-def get_response_from_ChatGPT_API(message_context, apikey):
+def get_response_from_ChatGPT_API(message_context, apikey,
+                                  model="gpt-3.5-turbo", temperature=0.9, presence_penalty=0, max_tokens=2000):
     """
     从ChatGPT API获取回复
-    :param apikey:
     :param message_context: 上下文
+    :param apikey: API KEY
+    :param model: 模型
+    :param temperature: 温度
+    :param presence_penalty: 惩罚
+    :param max_tokens: 最大token数量
     :return: 回复
     """
     if apikey is None:
@@ -76,8 +81,11 @@ def get_response_from_ChatGPT_API(message_context, apikey):
               "Authorization": "Bearer " + apikey}
 
     data = {
-        "model": "gpt-3.5-turbo",
-        "messages": message_context
+        "model": model,
+        "messages": message_context,
+        "temperature": temperature,
+        "presence_penalty": presence_penalty,
+        "max_tokens": max_tokens
     }
     url = "https://api.openai.com/v1/chat/completions"
 
@@ -166,7 +174,12 @@ def get_response_stream_generate_from_ChatGPT_API(message_context, apikey, messa
     从ChatGPT API获取回复
     :param apikey:
     :param message_context: 上下文
-    :return: 回复
+    :param message_history: 消息历史
+    :param model: 模型
+    :param temperature: 温度
+    :param presence_penalty: 惩罚
+    :param max_tokens: 最大token数量
+    :return: 回复生成器
     """
     if apikey is None:
         apikey = API_KEY
@@ -421,24 +434,11 @@ def return_message():
     获取用户发送的消息，调用get_chat_response()获取回复，返回回复，用于更新聊天框
     :return:
     """
-    # check_session(session)
-    '''
-                headers: {
-                "user_id": userId,
-                "password": password,
-            },
-            data: {
-                "messages": message_contexts,
-                "max_tokens": 2000,
-                "model": "gpt-3.5-turbo",
-                "temperature": 0.7,
-                "stream": true,
-                "continues_chat": true,
-                "chat_id": selectedChatId,
-            },
-    '''
+    if DEPLOY_ON_VERCEL and not DETA_KEY:
+        pass
+    else:
+        check_session(session)
     request_data = request.get_json()
-
 
     user_id = request.headers.get("user_id")
     password = request.headers.get("password")
@@ -449,6 +449,7 @@ def return_message():
     temperature = request_data.get("temperature")
     stream = request_data.get("stream")
     continuous_chat = request_data.get("continuous_chat")
+    save_message = request_data.get("save_message")
 
     send_message = messages[-1].get("content")
     send_time = messages[-1].get("send_time")
@@ -559,6 +560,7 @@ def return_message():
                     print("修改用户id:\t", new_user_id)
                     return f"修改成功,请牢记新的用户id为:{new_user_id}"
             elif send_message == "查余额":
+                # TODO 查余额的返回值将被记录到前端的上下文 想办法解决
                 user_info = get_user_info(session.get('user_id'))
                 apikey = user_info.get('apikey')
                 return get_balance(apikey)
@@ -574,25 +576,32 @@ def return_message():
                     user_info['chats'][chat_id]['have_chat_context'] += 1
                 if display_time:
                     messages_history.append({'role': 'wep-system', "content": send_time})
+                for m in messages:
+                    # TODO 函数化
+                    keys = list(m.keys())
+                    for k in keys:
+                        if k not in ['role', 'content']:
+                            del m[k]
                 if not STREAM_FLAG:
-                    content = handle_messages_get_response(send_message, apikey, messages_history,
-                                                           user_info['chats'][chat_id]['have_chat_context'],
-                                                           chat_with_history)
+                    if save_message:
+                        messages_history.append(messages[-1])
+                    response = get_response_from_ChatGPT_API(messages, apikey)
+                    if save_message:
+                        messages_history.append({"role": "assistant", "content": response})
+                    asyncio.run(save_all_user_dict())
 
-                    print(f"用户({session.get('user_id')})得到的回复消息:{content[:40]}...")
-                    if chat_with_history:
-                        user_info['chats'][chat_id]['have_chat_context'] += 1
+                    print(f"用户({session.get('user_id')})得到的回复消息:{response[:40]}...")
                     # 异步存储all_user_dict
                     asyncio.run(save_all_user_dict())
-                    return content
+                    return response
                 else:
-                    generate = handle_messages_get_response_stream(send_message, apikey, messages_history,
-                                                                   user_info['chats'][chat_id]['have_chat_context'],
-                                                                   chat_with_history)
-
-                    if chat_with_history:
-                        user_info['chats'][chat_id]['have_chat_context'] += 1
-
+                    if save_message:
+                        messages_history.append(messages[-1])
+                    asyncio.run(save_all_user_dict())
+                    if not save_message:
+                        messages_history = []
+                    generate = get_response_stream_generate_from_ChatGPT_API(messages, apikey, messages_history,
+                                                                             model=model, temperature=temperature, max_tokens=max_tokens)
                     return app.response_class(generate(), mimetype='application/json')
     else:
         if stream:
@@ -604,7 +613,6 @@ def return_message():
             generate = get_response_stream_generate_from_ChatGPT_API(messages, apikey, [],
                                                                      model=model, temperature=temperature, max_tokens=max_tokens)
             return app.response_class(generate(), mimetype='application/json')
-
 
 
 
@@ -641,29 +649,6 @@ def get_mode():
     else:
         return {"mode": "normal"}
 
-
-@app.route('/changeMode/<status>', methods=['GET'])
-def change_mode(status):
-    """
-    切换对话模式
-    :return:
-    """
-    check_session(session)
-    if not check_user_bind(session):
-        return {"code": -1, "msg": "请先创建或输入已有用户id"}
-    user_info = get_user_info(session.get('user_id'))
-    chat_id = user_info['selected_chat_id']
-    if status == "normal":
-        user_info['chats'][chat_id]['chat_with_history'] = False
-        print("开启普通对话")
-        message = {"role": "wep-system", "content": "切换至普通对话"}
-    else:
-        user_info['chats'][chat_id]['chat_with_history'] = True
-        user_info['chats'][chat_id]['have_chat_context'] = 0
-        print("开启连续对话")
-        message = {"role": "wep-system", "content": "切换至连续对话"}
-    user_info['chats'][chat_id]['messages_history'].append(message)
-    return {"code": 200, "data": message}
 
 
 @app.route('/selectChat', methods=['GET'])

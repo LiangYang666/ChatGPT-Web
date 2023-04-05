@@ -686,7 +686,7 @@
                 return chats[i];
             }
         }
-        return null;
+        return {};
     }
 
     $("#send-btn").click(function () {
@@ -735,14 +735,18 @@
 
         let message_contexts = [];
         let chat_info = getSelectedChatInfo();
-        if("memory_summarize" in chat_info){
-            message_contexts = [{"role": "system", "content": "历史聊天记录前情提要总结："+ chat_info.memory_summarize}];
-        }
-        for (let i=start_index;i<messages_of_chats[selectedChatId].length;i++){
-            let role = messages_of_chats[selectedChatId][i].role;
-            if (role === "user" || role === "assistant"){
-                message_contexts.push(messages_of_chats[selectedChatId][i]);
+        if ("mode" in chat_info && chat_info["mode"]!=="normal"){
+            if("memory_summarize" in chat_info){
+                message_contexts = [{"role": "system", "content": "历史聊天记录前情提要总结："+ chat_info.memory_summarize}];
             }
+            for (let i=start_index;i<messages_of_chats[selectedChatId].length;i++){
+                let role = messages_of_chats[selectedChatId][i].role;
+                if (role === "user" || role === "assistant"){
+                    message_contexts.push(messages_of_chats[selectedChatId][i]);
+                }
+            }
+        } else {
+            message_contexts = [messages_of_chats[selectedChatId][messages_of_chats[selectedChatId].length-1]];
         }
 
         let request_data = {
@@ -753,6 +757,7 @@
                 "stream": true,
                 "continues_chat": true,
                 "chat_id": selectedChatId,
+                "save_message": true,
         };
         console.log("[Request]");
         console.log(request_data);
@@ -807,6 +812,9 @@
     function getSummarize(){
         let summarize = "";
         let chat_info = getSelectedChatInfo();
+        if("mode" in chat_info && chat_info["mode"]==="normal"){  // 如果非连续对话模式，不进行总结
+            return;
+        }
         if("memory_summarize" in chat_info){
             summarize = chat_info.memory_summarize;
         } else {
@@ -844,6 +852,7 @@
                 "stream": true,
                 "continues_chat": true,
                 "chat_id": selectedChatId,
+                "save_message": false,
         };
         console.log("[Memory Request]");
         console.log(request_data);
@@ -911,29 +920,24 @@
         }
     });
     $('#chmod-btn').click(function () {
-        if ($("#chmod-btn").text() === "当前为普通对话") {
-            $.get("/changeMode/continuous", function (data) {
-                if(data.code===-1){
-                    alert(data.msg)
-                }  else {
-                    var html = '<div class="item item-center"><span>'+data.data.content+'</span></div>'
-                    $(".content").append(html);
-                    $(".content").scrollTop($(".content")[0].scrollHeight);
-                }
-            });
+        let chat_info = getSelectedChatInfo();
+        if (!("mode" in chat_info)){
+            chat_info["mode"] = "continuous";
+        }
+        let display_content = "";
+        if(chat_info["mode"]==="normal"){
+            chat_info["mode"] = "continuous";
+            display_content = "切换为连续对话";
             $("#chmod-btn").text("当前为连续对话");
         } else {
-            $.get("/changeMode/normal", function (data) {
-                if(data.code===-1){
-                    alert(data.msg)
-                }  else {
-                    var html = '<div class="item item-center"><span>'+data.data.content+'</span></div>'
-                    $(".content").append(html);
-                    $(".content").scrollTop($(".content")[0].scrollHeight);
-                }
-            });
+            chat_info["mode"] = "normal";
+            display_content = "切换为普通对话";
             $("#chmod-btn").text("当前为普通对话");
         }
+
+        var html = '<div class="item item-center"><span>'+display_content+'</span></div>'
+        $(".content").append(html);
+        $(".content").scrollTop($(".content")[0].scrollHeight);
     });
 </script>
 </html>
