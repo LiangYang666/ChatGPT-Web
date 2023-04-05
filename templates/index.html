@@ -776,7 +776,7 @@
                 onprogress: function (e) {
                     let response = e.currentTarget.response;
                     response_text = response;
-                    // console.log(response);
+                    console.log(response);
                     if (response.startsWith("url_redirect:")){
                         window.location.href=response.split(":")[1];
                     } else {
@@ -870,6 +870,7 @@
             xhrFields: {
                 onprogress: function (e) {
                     response_text = e.currentTarget.response;
+                    console.log(response_text);
                 },
             },
             complete: function (XMLHttpRequest, status, e) {
