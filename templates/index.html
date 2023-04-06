@@ -857,32 +857,67 @@
         console.log("[Memory Request]");
         console.log(request_data);
         let response_text =  "";
-        $.ajax({
-            url: "/returnMessage",
-            headers: {
-                "Content-Type": "application/json",
-                "user_id": config.userId,
-                "password": config.password,
-            },
-            data: JSON.stringify(request_data),
-            type: "Post",
-            dataType: "text",
-            xhrFields: {
-                onprogress: function (e) {
-                    response_text = e.currentTarget.response;
-                    console.log(response_text);
-                },
-            },
-            complete: function (XMLHttpRequest, status, e) {
-                if (status === 'timeout') {
-                    alert("请求超时");
-                }
-                chat_info["memory_summarize"] = response_text;
-                chat_info["last_summarize_index"] = end_index-1;
-                console.log("[Memory Response]");
-                console.log(response_text);
-            }
+        // $.ajax({
+        //     url: "/returnMessage",
+        //     headers: {
+        //         "Content-Type": "application/json",
+        //         "user_id": config.userId,
+        //         "password": config.password,
+        //     },
+        //     data: JSON.stringify(request_data),
+        //     type: "Post",
+        //     dataType: "text",
+        //     xhrFields: {
+        //         onprogress: function (e) {
+        //             response_text = e.currentTarget.response;
+        //             console.log(response_text);
+        //         },
+        //     },
+        //     complete: function (XMLHttpRequest, status, e) {
+        //         if (status === 'timeout') {
+        //             alert("请求超时");
+        //         }
+        //         chat_info["memory_summarize"] = response_text;
+        //         chat_info["last_summarize_index"] = end_index-1;
+        //         console.log("[Memory Response]");
+        //         console.log(response_text);
+        //     }
+        // })
+        let decoder = new TextDecoder("utf-8");
+        fetch("/returnMessage", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "user_id": config.userId,
+            "password": config.password
+          },
+          body: JSON.stringify(request_data),
+        }).then((response) => {
+          if (!response.ok) {
+            throw new Error("Network response was not ok");
+          }
+          const reader = response.body.getReader();
+          let responseText = '';
+          return readStream();
+
+          function readStream() {
+            return reader.read().then(({ done, value }) => {
+              if (done) {
+                console.log(responseText);
+                chat_info["memory_summarize"] = responseText;
+                chat_info["last_summarize_index"] = end_index -1;
+                return;
+              }
+              responseText += decoder.decode(value);
+              console.log(responseText);
+              return readStream();
+            });
+          }
+
+        }).catch((error) => {
+          alert("Fetch API request failed with error:", error);
         })
+
 
     }
 
