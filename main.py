@@ -348,9 +348,11 @@ def get_balance(apikey):
     else:
         return head+subscription_response.text
 
+    # start_date设置为今天日期前99天
+    start_date = (datetime.datetime.now() - datetime.timedelta(days=99)).strftime("%Y-%m-%d")
     # end_date设置为今天日期+1
     end_date = (datetime.datetime.now() + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
-    billing_url = "https://api.openai.com/v1/dashboard/billing/usage?start_date=2023-01-02&end_date=" + end_date
+    billing_url = f"https://api.openai.com/v1/dashboard/billing/usage?start_date={start_date}&end_date={end_date}"
     billing_response = requests.get(billing_url, headers=headers)
     if billing_response.status_code == 200:
         data = billing_response.json()
