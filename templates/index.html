@@ -241,6 +241,21 @@
             padding: .1rem .1rem;
             color: #f8f8f2;
         }
+        {#代码复制按钮格式#}
+        .markdown pre .code-copy-btn {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            -khtml-user-select: none;
+            user-select: none;
+            position: absolute;
+            right: 12px;
+            font-size: 12px;
+            line-height: 1;
+            cursor: pointer;
+            color: hsla(0,0%,54.9%,.8);
+            transition: color .1s;
+        }
         {#行内代码段样式#}
         .markdown code {
             color: #c7254e;
@@ -579,10 +594,49 @@
                 $(".content").append(html);
                 MathJax.Hub.Queue(["Typeset", MathJax.Hub, $(".content").get()]);   // 异步转换 放入队列中
                 $(".content").scrollTop($(".content")[0].scrollHeight);
+
+			    let preList = $(".markdown pre");
+				preList.each(function(){
+					let btn = $("<span class=\"code-copy-btn\" onclick='codeCopy(this)'>复制代码</span>");
+			        btn.prependTo($(this));
+				});
             }
         });
     }
     loadHistory();
+
+    function codeCopy(obj) {
+
+        let btn = $(obj);
+        console.log("复制代码");
+        btn.text("");
+        let code = btn.parent().text();
+        btn.text("复制代码");
+
+        // 使用 Clipboard.js 复制文本
+        let clipboard = new ClipboardJS(obj, {
+            text: function() {
+                return code;
+            }
+        });
+
+        // 显示复制结果
+        clipboard.on('success', function(e) {
+            console.log("复制成功");
+            btn.text("复制成功");
+            setTimeout(function(){
+                btn.text("复制代码");
+            }, 1000);
+        });
+        clipboard.on('error', function(e) {
+            console.log("复制失败");
+            btn.text("复制失败");
+            setTimeout(function(){
+                btn.text("复制代码");
+            }, 1000);
+        });
+    }
+
     let returnMessageAjax = null;
     function get_time_str(time) {
         let year = time.getFullYear(); //得到年份
@@ -660,6 +714,8 @@
                     alert("请求超时");
                 }
                 $("#stop-btn").hide();
+                let btn = $("<span class=\"code-copy-btn\" onclick='codeCopy(this)'>复制代码</span>");
+                btn.prependTo(chat_item.find(".bubble").find("pre"));
             }
         });
     });
