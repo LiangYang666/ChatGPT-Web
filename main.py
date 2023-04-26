@@ -298,7 +298,7 @@ def load_chats():
         chats = []
         for chat_id, chat_info in user_info['chats'].items():
             chats.append(
-                {"id": chat_id, "name": chat_info['name'], "selected": chat_id == user_info['selected_chat_id']})
+                {"id": chat_id, "name": chat_info['name'], "selected": chat_id == user_info['selected_chat_id'], "messages_total": len(user_info['chats'][chat_id]['messages_history'])})
 
     return {"code": 0, "data": chats, "message": ""}
 
@@ -601,7 +601,7 @@ def new_chat():
     user_info['selected_chat_id'] = new_chat_id
     user_info['chats'][new_chat_id] = new_chat_dict(user_id, name, time)
     print("新建聊天对象")
-    return {"code": 200, "data": {"name": name, "id": new_chat_id, "selected": True}}
+    return {"code": 200, "data": {"name": name, "id": new_chat_id, "selected": True, "messages_total": len(user_info['chats'][new_chat_id]['messages_history'])}}
 
 
 @app.route('/deleteHistory', methods=['GET'])
