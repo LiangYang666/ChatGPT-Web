@@ -12,8 +12,13 @@
         padding: 0;
         margin: 0;
         }
+        html{
+            height: 100%;
+            width: 100%;
+            display: block;
+        }
         body{
-            height: 100vh;
+            height: 100%;
             width: 100%;
             display: flex;
             border: #aaaaaa;
@@ -21,10 +26,9 @@
             justify-content: center;
         }
         .all-container {
-            max-height: 760px;
-            height: 100vh;
-            width: 100%;
-            padding: 15px;
+            height: 85vh;
+            width: 90vw;
+            min-height: 480px;
             display: flex;
             border: #aaaaaa;
             flex-flow: row;
@@ -32,7 +36,7 @@
             align-items: center;
         }
         .left-container{
-            height: 90%;
+            height: inherit;
             width: 160px;
             min-width: 60px;
             max-width: 200px;
@@ -69,7 +73,7 @@
             background-color: #E8E8E8;
         }
         .right-container{
-            height: 90%;
+            height: inherit;
             width: 760px;
             min-width: 220px;
             border-radius: 4px;
@@ -282,6 +286,36 @@
             cursor: pointer;
             display: none;
         }
+        .head-area{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background-color: #fafafa;
+            border-bottom: 0.5px solid #e0e0e0;
+        }
+        .head-left{
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+        }
+        .head-info{
+            display: flex;
+            flex-flow: column;
+            justify-content: center;
+            align-items: flex-start;
+        }
+        .head-chat-name{
+            font-size: 24px;
+            font-family: “Arial”,”Microsoft YaHei”,”黑体”,”宋体”,sans-serif;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .head-chat-info{
+            font-size: 12px;
+            color: #9e9e9e;
+            margin-left: 10px;
+        }
     </style>
     <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/marked.min.js') }}"></script>
@@ -302,6 +336,22 @@
             </div>
         </div>
         <div class="right-container">
+            <div class="head-area">
+                <div class="head-left">
+                    <div class="avatar">
+                        <img src="{{ url_for('static', filename='chatgpt.png') }}" alt="">
+                    </div>
+                    <div class="head-info">
+                        <div class="head-chat-name">默认对话</div>
+                        <div class="head-chat-info">共0条记录</div>
+                    </div>
+                </div>
+                <div class="head-right">
+                    <div class="head-btn" id="head-btn">
+
+                    </div>
+                </div>
+            </div>
             <div class="content">
             </div>
             <div class="input-area">
@@ -471,6 +521,16 @@
         })
     }
 
+    function renderHeadInfo() {
+        if (selectedChatId === undefined) {
+            $(".head-chat-name").text("未绑定用户");
+            $(".head-chat-info").text("当前浏览器未绑定用户");
+        } else {
+            $(".head-chat-name").text($("#" + selectedChatId).attr("data-name"));
+            $(".head-chat-info").text("共有" + $("#" + selectedChatId).attr("data-messages_total") + "条消息");
+        }
+    }
+
     getMode();
 
     let selectedChatId;
@@ -489,7 +549,7 @@
                 if(chats[i].selected === true){
                     selectedChatId = chats[i].id;
                 }
-                html += '<div class="chat" id='+chats[i].id+' data-name='+chats[i].name+' data-selected='+chats[i].selected+'>' + chats[i].name + '</div>';
+                html += '<div class="chat" id='+chats[i].id+' data-name='+chats[i].name+' data-selected='+chats[i].selected+' data-messages_total='+chats[i].messages_total+'>' + chats[i].name + '</div>';
             }
             if(chats.length === 0){     // 表示是未绑定用户状态
                 $("#del-btn").hide();
@@ -506,7 +566,7 @@
                     $("#del-btn").html("删除聊天记录");
                 }
             }
-
+            renderHeadInfo();
         }
     })
     $("#newchat").click(function () {
@@ -526,7 +586,7 @@
             success: function (data) {
                 console.log(data);
                 if (data.code === 200) {
-                    let html = '<div class="chat" id='+data.data.id+' data-name='+data.data.name+' data-selected='+data.data.selected+'>' + data.data.name + '</div>';
+                    let html = '<div class="chat" id='+data.data.id+' data-name='+data.data.name+' data-selected='+data.data.selected+' data-messages_total='+data.data.messages_total+'>' + data.data.name + '</div>';
                     // newchat.remove();
                     $(".chat-list").append(html);
                     $(".chat-list").append(newchat);
@@ -537,6 +597,7 @@
                     $('.content').empty();
                     loadHistory();
                     getMode();
+                    renderHeadInfo();
                 }
             }
         })
@@ -568,6 +629,7 @@
                     }
                     loadHistory();
                     getMode();
+                    renderHeadInfo();
                 }
             }
         })
