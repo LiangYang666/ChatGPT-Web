@@ -31,7 +31,7 @@ API_KEY = os.getenv("OPENAI_API_KEY", default=API_KEY)  # 如果环境变量中�
 PORT = os.getenv("PORT", default=PORT)  # 如果环境变量中设置了PORT，则使用环境变量中的PORT
 
 STREAM_FLAG = True  # 是否开启流式推送
-USER_DICT_FILE = "all_user_dict_v2.pkl"  # 用户信息存储文件（包含版本）
+USER_DICT_FILE = "all_user_dict_v3.pkl"  # 用户信息存储文件（包含版本）
 lock = threading.Lock()  # 用于线程锁
 
 project_info = "## ChatGPT 网页版    \n" \
@@ -40,11 +40,16 @@ project_info = "## ChatGPT 网页版    \n" \
                "发送`帮助`可获取帮助  \n"
 
 
-def get_response_from_ChatGPT_API(message_context, apikey):
+def get_response_from_ChatGPT_API(message_context, apikey,
+                                  model="gpt-3.5-turbo", temperature=0.9, presence_penalty=0, max_tokens=2000):
     """
     从ChatGPT API获取回复
-    :param apikey:
     :param message_context: 上下文
+    :param apikey: API KEY
+    :param model: 模型
+    :param temperature: 温度
+    :param presence_penalty: 惩罚
+    :param max_tokens: 最大token数量
     :return: 回复
     """
     if apikey is None:
@@ -54,8 +59,11 @@ def get_response_from_ChatGPT_API(message_context, apikey):
               "Authorization": "Bearer " + apikey}
 
     data = {
-        "model": "gpt-3.5-turbo",
-        "messages": message_context
+        "model": model,
+        "messages": message_context,
+        "temperature": temperature,
+        "presence_penalty": presence_penalty,
+        "max_tokens": max_tokens
     }
     url = "https://api.openai.com/v1/chat/completions"
 
@@ -138,12 +146,18 @@ def handle_messages_get_response(message, apikey, message_history, have_chat_con
     return response
 
 
-def get_response_stream_generate_from_ChatGPT_API(message_context, apikey, message_history):
+def get_response_stream_generate_from_ChatGPT_API(message_context, apikey, message_history,
+                                                  model="gpt-3.5-turbo", temperature=0.9, presence_penalty=0, max_tokens=2000):
     """
     从ChatGPT API获取回复
     :param apikey:
     :param message_context: 上下文
-    :return: 回复
+    :param message_history: 消息历史
+    :param model: 模型
+    :param temperature: 温度
+    :param presence_penalty: 惩罚
+    :param max_tokens: 最大token数量
+    :return: 回复生成器
     """
     if apikey is None:
         apikey = API_KEY
@@ -152,7 +166,10 @@ def get_response_stream_generate_from_ChatGPT_API(message_context, apikey, messa
               "Authorization": "Bearer " + apikey}
 
     data = {
-        "model": "gpt-3.5-turbo",
+        "model": model,
+        "temperature": temperature,
+        "presence_penalty": presence_penalty,
+        "max_tokens": max_tokens,
         "messages": message_context,
         "stream": True
     }
@@ -280,7 +297,8 @@ def load_messages():
         chat_id = user_info['selected_chat_id']
         messages_history = user_info['chats'][chat_id]['messages_history']
         print(f"用户({session.get('user_id')})加载聊天记录，共{len(messages_history)}条记录")
-    return {"code": 0, "data": messages_history, "message": ""}
+    code = 200  # 200表示云端存储了 node.js改写时若云端不存储则返回201
+    return {"code": code, "data": messages_history, "message": ""}
 
 
 @app.route('/loadChats', methods=['GET', 'POST'])
@@ -297,10 +315,15 @@ def load_chats():
         user_info = get_user_info(session.get('user_id'))
         chats = []
         for chat_id, chat_info in user_info['chats'].items():
+            if chat_info['chat_with_history']:
+                mode = "continuous"
+            else:
+                mode = "normal"
             chats.append(
-                {"id": chat_id, "name": chat_info['name'], "selected": chat_id == user_info['selected_chat_id'], "messages_total": len(user_info['chats'][chat_id]['messages_history'])})
-
-    return {"code": 0, "data": chats, "message": ""}
+                {"id": chat_id, "name": chat_info['name'], "selected": chat_id == user_info['selected_chat_id'],
+                 "mode": mode, "messages_total": len(user_info['chats'][chat_id]['messages_history'])})
+    code = 200  # 200表示云端存储了 node.js改写时若云端不存储则返回201
+    return {"code": code, "data": chats, "message": ""}
 
 
 def new_chat_dict(user_id, name, send_time):
@@ -308,9 +331,9 @@ def new_chat_dict(user_id, name, send_time):
             "have_chat_context": 0,  # 从每次重置聊天模式后开始重置一次之后累计
             "name": name,
             "messages_history": [{"role": "assistant", "content": project_info},
-                                 {"role": "system", "content": f"当前对话的用户id为{user_id}"},
-                                 {"role": "system", "content": send_time},
-                                 {"role": "system", "content": f"你已添加了{name}，现在可以开始聊天了。"},
+                                 {"role": "web-system", "content": f"当前对话的用户id为{user_id}"},
+                                 {"role": "web-system", "content": send_time},
+                                 {"role": "web-system", "content": f"你已添加了{name}，现在可以开始聊天了。"},
                                  ]}
 
 
@@ -384,9 +407,23 @@ def return_message():
     :return:
     """
     check_session(session)
-    send_message = request.values.get("send_message").strip()
-    send_time = request.values.get("send_time").strip()
-    url_redirect = "url_redirect:/"
+    request_data = request.get_json()
+
+    user_id = request.headers.get("user_id")
+    password = request.headers.get("password")
+    apikey = request.headers.get("apikey")
+    messages = request_data.get("messages")
+    max_tokens = request_data.get("max_tokens")
+    model = request_data.get("model")
+    temperature = request_data.get("temperature")
+    stream = request_data.get("stream")
+    continuous_chat = request_data.get("continuous_chat")
+    save_message = request_data.get("save_message")
+
+    send_message = messages[-1].get("content")
+    send_time = messages[-1].get("send_time")
+    display_time = bool(messages[-1].get("display_time"))
+    url_redirect = {"url_redirect": "/", "user_id": None}
     if send_message == "帮助":
         return "### 帮助\n" \
                "1. 输入`new:xxx`创建新的用户id\n " \
@@ -395,11 +432,11 @@ def return_message():
                "4. 输入`rename_id:xxx`可将当前用户id更改\n" \
                "5. 输入`查余额`可获得余额信息及最近几天使用量\n" \
                "6. 输入`帮助`查看帮助信息"
-
-    if session.get('user_id') is None:  # 如果当前session未绑定用户
+    if session.get('user_id') is None:  # 如果当前session未绑定用户(VERCEL环境下)
         print("当前会话为首次请求，用户输入:\t", send_message)
         if send_message.startswith("new:"):
             user_id = send_message.split(":")[1]
+            url_redirect["user_id"] = user_id
             if user_id in all_user_dict:
                 session['user_id'] = user_id
                 return url_redirect
@@ -419,6 +456,7 @@ def return_message():
                 session['user_id'] = user_id
                 print("已有用户id:\t", user_id)
                 # 重定向到index
+                url_redirect["user_id"] = user_id
                 return url_redirect
     else:  # 当存在用户id时
         if send_message.startswith("id:"):
@@ -476,6 +514,7 @@ def return_message():
                 print("修改用户id:\t", new_user_id)
                 return f"修改成功,请牢记新的用户id为:{new_user_id}"
         elif send_message == "查余额":
+            # TODO 查余额的返回值将被记录到前端的上下文 想办法解决
             user_info = get_user_info(session.get('user_id'))
             apikey = user_info.get('apikey')
             return get_balance(apikey)
@@ -489,29 +528,35 @@ def return_message():
             apikey = user_info.get('apikey')
             if chat_with_history:
                 user_info['chats'][chat_id]['have_chat_context'] += 1
-            if send_time != "":
-                messages_history.append({'role': 'system', "content": send_time})
+            if display_time:
+                messages_history.append({'role': 'web-system', "content": send_time})
+            for m in messages:
+                # TODO 函数化
+                keys = list(m.keys())
+                for k in keys:
+                    if k not in ['role', 'content']:
+                        del m[k]
             if not STREAM_FLAG:
-                content = handle_messages_get_response(send_message, apikey, messages_history,
-                                                       user_info['chats'][chat_id]['have_chat_context'],
-                                                       chat_with_history)
+                if save_message:
+                    messages_history.append(messages[-1])
+                response = get_response_from_ChatGPT_API(messages, apikey)
+                if save_message:
+                    messages_history.append({"role": "assistant", "content": response})
+                asyncio.run(save_all_user_dict())
 
-                print(f"用户({session.get('user_id')})得到的回复消息:{content[:40]}...")
-                if chat_with_history:
-                    user_info['chats'][chat_id]['have_chat_context'] += 1
+                print(f"用户({session.get('user_id')})得到的回复消息:{response[:40]}...")
                 # 异步存储all_user_dict
                 asyncio.run(save_all_user_dict())
-                return content
+                return response
             else:
-                generate = handle_messages_get_response_stream(send_message, apikey, messages_history,
-                                                               user_info['chats'][chat_id]['have_chat_context'],
-                                                               chat_with_history)
-
-                if chat_with_history:
-                    user_info['chats'][chat_id]['have_chat_context'] += 1
-
+                if save_message:
+                    messages_history.append(messages[-1])
+                asyncio.run(save_all_user_dict())
+                if not save_message:
+                    messages_history = []
+                generate = get_response_stream_generate_from_ChatGPT_API(messages, apikey, messages_history,
+                                                                         model=model, temperature=temperature, max_tokens=max_tokens)
                 return app.response_class(generate(), mimetype='application/json')
-
 
 async def save_all_user_dict():
     """
@@ -550,6 +595,7 @@ def change_mode(status):
     切换对话模式
     :return:
     """
+    # TODO 待删除
     check_session(session)
     if not check_user_bind(session):
         return {"code": -1, "msg": "请先创建或输入已有用户id"}
@@ -592,12 +638,13 @@ def new_chat():
     """
     name = request.args.get("name")
     time = request.args.get("time")
+    new_chat_id = request.args.get("chat_id")
     check_session(session)
     if not check_user_bind(session):
         return {"code": -1, "msg": "请先创建或输入已有用户id"}
     user_id = session.get('user_id')
     user_info = get_user_info(user_id)
-    new_chat_id = str(uuid.uuid1())
+    # new_chat_id = str(uuid.uuid1())
     user_info['selected_chat_id'] = new_chat_id
     user_info['chats'][new_chat_id] = new_chat_dict(user_id, name, time)
     print("新建聊天对象")
@@ -642,8 +689,26 @@ def check_load_pickle():
                 print(f"{user_info['chats'][chat_id]['name']}[{len(user_info['chats'][chat_id]['messages_history'])}] ",
                       end="")
             print()
+    elif os.path.exists("all_user_dict_v2.pkl"):    # 适配V2
+        print('检测到v2版本的上下文，将转换为v3版本')
+        with open("all_user_dict_v2.pkl", "rb") as pickle_file:
+            all_user_dict = pickle.load(pickle_file)
+            all_user_dict.change_capacity(USER_SAVE_MAX)
+        print("共有用户", len(all_user_dict), "个")
+        for user_id in list(all_user_dict.keys()):
+            user_info: dict = all_user_dict.get(user_id)
+            for chat_id in user_info['chats'].keys():
+                if "messages_history" in user_info['chats'][chat_id]:
+                    for i in range(len(user_info['chats'][chat_id]['messages_history'])):
+                        # 将system关键字改为 web-system
+                        if "role" in user_info['chats'][chat_id]['messages_history'][i] and \
+                                user_info['chats'][chat_id]['messages_history'][i]["role"] == "system":
+                            user_info['chats'][chat_id]['messages_history'][i]["role"] = "web-system"
+
+        asyncio.run(save_all_user_dict())
+
     elif os.path.exists("all_user_dict.pkl"):  # 适配当出现这个时
-        print('检测到v1版本的上下文，将转换为v2版本')
+        print('检测到v1版本的上下文，将转换为v3版本')
         with open("all_user_dict.pkl", "rb") as pickle_file:
             all_user_dict = pickle.load(pickle_file)
             all_user_dict.change_capacity(USER_SAVE_MAX)
