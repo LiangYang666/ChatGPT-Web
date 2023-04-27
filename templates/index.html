@@ -84,6 +84,7 @@
             overflow: hidden;
         }
         .content{
+            position: relative;
             font-size: 15px;
             width: calc(100% - 40px);
             padding: 20px;
@@ -359,6 +360,16 @@
                 font-size: 14px;
             }
         }
+        #settings-dialog {
+            display: none;
+            position: absolute;
+            border-radius: 5px;
+            background-color: #f1f1f1;
+            padding: 20px;
+            border: 2px solid #ccc;
+            z-index: 2; /* Sit on top */
+        }
+
 
 
     </style>
@@ -378,12 +389,50 @@
         $("#toggle-chats-btn").click(function () {
             $(".left-container").toggle();
         });
+        $("#toggle-setting-btn").click(function () {
+            let top = $(".content").offset().top;
+            let left = $(".content").offset().left;
+            let width = $(".content").width();
+            let height = $(".content").height()+$(".input-area").height();
+            $("#settings-dialog").css("top", top);
+            $("#settings-dialog").css("left", left);
+            $("#settings-dialog").css("width", width);
+            $("#settings-dialog").css("height", height);
+            $("#settings-dialog").toggle();
+        });
+    });
+
+    $("#save-btn").click(function () {
+        var user_id = $("#user-id").val();
+        var password = $("#password").val();
+        $.ajax({
+            url: "/save_user_info",
+            type: "POST",
+            data: {
+                user_id: user_id,
+                password: password
+            },
+            success: function (data) {
+                alert(data);
+            }
+        });
     });
 
 
 </script>
 <body>
     <div class="all-container">
+        <div id="settings-dialog">
+            <form>
+                <label for="user-id">用户ID：</label>
+                <input type="text" id="user-id">
+                <br>
+                <label for="password">密码：</label>
+                <input type="password" id="password">
+                <br>
+                <button type="button" id="save-btn">保存</button>
+            </form>
+        </div>
         <div class="left-container">
             <div class="chat-list">
                 <div class="newchat" id="newchat">添加新的对话</div>
