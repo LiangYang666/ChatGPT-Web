@@ -285,6 +285,16 @@ def load_messages():
     :return: 聊天记录
     """
     check_session(session)
+
+    user_id = request.headers.get("user_id")
+    password = request.headers.get("password")
+    apikey = request.headers.get("apikey")
+    user_info = get_user_info(user_id)
+    if user_info is not None:
+        session['user_id'] = user_id
+    if apikey is not None and len(apikey) > 1:
+        user_info['apikey'] = apikey
+
     if session.get('user_id') is None:
         messages_history = [{"role": "assistant", "content": project_info},
                             {"role": "assistant", "content": "#### 当前浏览器会话为首次请求\n"
@@ -308,6 +318,16 @@ def load_chats():
     :return: 聊天联系人
     """
     check_session(session)
+
+    user_id = request.headers.get("user_id")
+    password = request.headers.get("password")
+    apikey = request.headers.get("apikey")
+    user_info = get_user_info(user_id)
+    if user_info is not None:
+        session['user_id'] = user_id
+    if apikey is not None and len(apikey) > 1:
+        user_info['apikey'] = apikey
+
     if not check_user_bind(session):
         chats = []
 
@@ -408,10 +428,15 @@ def return_message():
     """
     check_session(session)
     request_data = request.get_json()
-
     user_id = request.headers.get("user_id")
     password = request.headers.get("password")
     apikey = request.headers.get("apikey")
+    user_info = get_user_info(user_id)
+    if user_info is not None:
+        session['user_id'] = user_id
+    if apikey is not None and len(apikey) > 1:
+        user_info['apikey'] = apikey
+
     messages = request_data.get("messages")
     max_tokens = request_data.get("max_tokens")
     model = request_data.get("model")

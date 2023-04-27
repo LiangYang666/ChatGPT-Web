@@ -693,6 +693,11 @@
     $.ajax({
         url: "/loadChats",
         type: "Get",
+        headers: {
+            "user_id": config.userId,
+            "password": config.password,
+            "api_key": config.apiKey,
+        },
         dataType: "json",
         success: function (data) {
             console.log(data);
@@ -741,6 +746,11 @@
         $.ajax({
             url: "/newChat",
             type: "Get",
+            headers: {
+                "user_id": config.userId,
+                "password": config.password,
+                "api_key": config.apiKey,
+            },
             dataType: "json",
             data: {
                 "name": name,
@@ -784,6 +794,11 @@
         $.ajax({
             url: "/selectChat",
             type: "Get",
+            headers: {
+                "user_id": config.userId,
+                "password": config.password,
+                "api_key": config.apiKey,
+            },
             dataType: "json",
             data: {     // get 方法时 data放置于路径 ?id=
                 "id": id
@@ -821,6 +836,11 @@
         $.ajax({
             url: "/loadHistory",
             type: "Get",
+            headers: {
+                "user_id": config.userId,
+                "password": config.password,
+                "api_key": config.apiKey,
+            },
             dataType: "json",
             success: function (data) {
                 console.log(data);
@@ -994,6 +1014,7 @@
                 "Content-Type": "application/json",
                 "user_id": config.userId,
                 "password": config.password,
+                "api_key": config.apiKey,
             },
             data: JSON.stringify(request_data),
             type: "Post",
