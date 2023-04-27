@@ -19,6 +19,10 @@ with open("config.yaml", "r", encoding="utf-8") as f:
     if 'HTTPS_PROXY' in config:
         if os.environ.get('HTTPS_PROXY') is None:   # 优先使用环境变量中的代理，若环境变量中没有代理，则使用配置文件中的代理
             os.environ['HTTPS_PROXY'] = config['HTTPS_PROXY']
+    if 'PASSWORD' in config:
+        PASSWORD = config['PASSWORD']
+    else:
+        PASSWORD = ""       # 即不使用访问密码
     PORT = config['PORT']
     API_KEY = config['OPENAI_API_KEY']
     CHAT_CONTEXT_NUMBER_MAX = config['CHAT_CONTEXT_NUMBER_MAX']     # 连续对话模式下的上下文最大数量 n，即开启连续对话模式后，将上传本条消息以及之前你和GPT对话的n-1条消息
@@ -29,6 +33,7 @@ if os.getenv("DEPLOY_ON_RAILWAY") is not None:  # 如果是在Railway上部署�
 
 API_KEY = os.getenv("OPENAI_API_KEY", default=API_KEY)  # 如果环境变量中设置了OPENAI_API_KEY，则使用环境变量中的OPENAI_API_KEY
 PORT = os.getenv("PORT", default=PORT)  # 如果环境变量中设置了PORT，则使用环境变量中的PORT
+PASSWORD = os.getenv("PASSWORD", default=PASSWORD)  # 如果环境变量中设置了PASSWORD，则使用环境变量中的PASSWORD
 
 STREAM_FLAG = True  # 是否开启流式推送
 USER_DICT_FILE = "all_user_dict_v3.pkl"  # 用户信息存储文件（包含版本）
@@ -267,7 +272,6 @@ def get_user_info(user_id):
     return user_info
 
 
-# 进入主页
 @app.route('/', methods=['GET', 'POST'])
 def index():
     """
@@ -285,16 +289,10 @@ def load_messages():
     :return: 聊天记录
     """
     check_session(session)
-
-    user_id = request.headers.get("user_id")
-    password = request.headers.get("password")
-    apikey = request.headers.get("apikey")
-    user_info = get_user_info(user_id)
-    if user_info is not None:
-        session['user_id'] = user_id
-    if apikey is not None and len(apikey) > 1:
-        user_info['apikey'] = apikey
-
+    success, message = auth(request.headers, session)
+    code = 200  # 200表示云端存储了 node.js改写时若云端不存储则返回201
+    if not success:
+        return {"code": code, "data": [{"role": "web-system", "content": message}]}
     if session.get('user_id') is None:
         messages_history = [{"role": "assistant", "content": project_info},
                             {"role": "assistant", "content": "#### 当前浏览器会话为首次请求\n"
@@ -307,8 +305,33 @@ def load_messages():
         chat_id = user_info['selected_chat_id']
         messages_history = user_info['chats'][chat_id]['messages_history']
         print(f"用户({session.get('user_id')})加载聊天记录，共{len(messages_history)}条记录")
-    code = 200  # 200表示云端存储了 node.js改写时若云端不存储则返回201
     return {"code": code, "data": messages_history, "message": ""}
+
+
+def auth(request_head, session):
+    """
+    验证用户身份
+    :param request_head: 请求头
+    :param session: session
+    :return: 验证结果
+    """
+    user_id = request_head.get("user_id")
+    password = request_head.get("password")
+    apikey = request_head.get("apikey")
+
+    user_info = get_user_info(user_id)
+    if len(PASSWORD) > 0 and password != PASSWORD:
+        return False, "访问密码错误，请输入正确的访问密码"
+
+    if user_info is not None:
+        session['user_id'] = user_id
+        if apikey is not None and len(apikey) > 1:
+            user_info['apikey'] = apikey
+        return True, "success"
+    else:
+        if session.get('user_id') is not None:
+            del session['user_id']
+        return False, "用户不存在"
 
 
 @app.route('/loadChats', methods=['GET', 'POST'])
@@ -318,19 +341,10 @@ def load_chats():
     :return: 聊天联系人
     """
     check_session(session)
+    success, message = auth(request.headers, session)
 
-    user_id = request.headers.get("user_id")
-    password = request.headers.get("password")
-    apikey = request.headers.get("apikey")
-    user_info = get_user_info(user_id)
-    if user_info is not None:
-        session['user_id'] = user_id
-    if apikey is not None and len(apikey) > 1:
-        user_info['apikey'] = apikey
-
-    if not check_user_bind(session):
+    if not check_user_bind(session) or not success:
         chats = []
-
     else:
         user_info = get_user_info(session.get('user_id'))
         chats = []
@@ -428,14 +442,8 @@ def return_message():
     """
     check_session(session)
     request_data = request.get_json()
-    user_id = request.headers.get("user_id")
-    password = request.headers.get("password")
-    apikey = request.headers.get("apikey")
-    user_info = get_user_info(user_id)
-    if user_info is not None:
-        session['user_id'] = user_id
-    if apikey is not None and len(apikey) > 1:
-        user_info['apikey'] = apikey
+
+    success, message = auth(request.headers, session)
 
     messages = request_data.get("messages")
     max_tokens = request_data.get("max_tokens")

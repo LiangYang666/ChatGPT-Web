@@ -324,8 +324,14 @@
             align-items: center;
         }
         .svg-icon {
-          width: 2em;
-          height: 2em;
+            width: 2em;
+            height: 2em;
+        }
+
+        .svg-icon:hover path,
+        .svg-icon:hover polygon,
+        .svg-icon:hover rect {
+          fill: #6bab6b;
         }
 
         .svg-icon path,
@@ -369,7 +375,54 @@
             border: 2px solid #ccc;
             z-index: 2; /* Sit on top */
         }
-
+        .setting-menus{
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            flex-direction: column;
+            align-items: center;
+        }
+        .setting-menu{
+            min-width: 200px;
+            display: flex;
+            flex-flow: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .setting {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            margin-top: 10px;
+            padding: 8px;
+        }
+        .setting input{
+            max-width: 200px;
+            height: 35px;
+            font-size: 18px;
+            text-align: center;
+            border-radius: 6px;
+            border: 1px solid #A0A0A0;
+            outline: none;
+        }
+        .settings-close-btn{
+            width: 100%;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+        }
+        .setting-label{
+            font-size: 18px;
+            font-family: “Arial”,”Microsoft YaHei”,”黑体”,”宋体”,sans-serif;
+            font-weight: bold;
+            padding-right: 10px;
+        }
+        .setting-sub-label{
+            font-size: 12px;
+            color: #9e9e9e;
+        }
 
 
     </style>
@@ -385,21 +438,46 @@
 </head>
 <script>
     // toggle-chats-btn按下 设置left-container可见
+    function toggle_settings_dialog() {
+        if($("#settings-dialog").css("display") === "none"){
+                $("#api-key").val(config.apikey);
+                $("#user-id").val(config.userId);
+                $("#password").val(config.password);
+
+                let top = $(".content").offset().top;
+                let left = $(".content").offset().left;
+                let width = $(".content").width();
+                let height = $(".content").height()+$(".input-area").height();
+                $("#settings-dialog").css("top", top);
+                $("#settings-dialog").css("left", left);
+                $("#settings-dialog").css("width", width);
+                $("#settings-dialog").css("height", height);
+            } else {
+                // 获取设置值
+                let user_change_flag = false;
+                if (config.userId !== $("#user-id").val() || config.password !== $("#password").val()){
+                    user_change_flag = true;
+                }
+                config.apikey = $("#api-key").val();
+                config.userId = $("#user-id").val();
+                config.password = $("#password").val();
+                // 保存设置
+                localStorage.setItem("config", JSON.stringify(config));
+                if (user_change_flag){
+                    // 刷新页面
+                    location.reload();
+                }
+            }
+            $("#settings-dialog").toggle();
+    }
     $(document).ready(function () {
         $("#toggle-chats-btn").click(function () {
             $(".left-container").toggle();
         });
         $("#toggle-setting-btn").click(function () {
-            let top = $(".content").offset().top;
-            let left = $(".content").offset().left;
-            let width = $(".content").width();
-            let height = $(".content").height()+$(".input-area").height();
-            $("#settings-dialog").css("top", top);
-            $("#settings-dialog").css("left", left);
-            $("#settings-dialog").css("width", width);
-            $("#settings-dialog").css("height", height);
-            $("#settings-dialog").toggle();
+            toggle_settings_dialog();
         });
+
     });
 
     $("#save-btn").click(function () {
@@ -422,16 +500,47 @@
 </script>
 <body>
     <div class="all-container">
+
         <div id="settings-dialog">
-            <form>
-                <label for="user-id">用户ID：</label>
-                <input type="text" id="user-id">
-                <br>
-                <label for="password">密码：</label>
-                <input type="password" id="password">
-                <br>
-                <button type="button" id="save-btn">保存</button>
-            </form>
+            <div class="settings-close-btn" onclick="toggle_settings_dialog()">
+                <svg class="svg-icon" viewBox="0 0 20 20">
+                    <path fill="none" d="M15.898,4.045c-0.271-0.272-0.713-0.272-0.986,0l-4.71,4.711L5.493,4.045c-0.272-0.272-0.714-0.272-0.986,0s-0.272,0.714,0,0.986l4.709,4.711l-4.71,4.711c-0.272,0.271-0.272,0.713,0,0.986c0.136,0.136,0.314,0.203,0.492,0.203c0.179,0,0.357-0.067,0.493-0.203l4.711-4.711l4.71,4.711c0.137,0.136,0.314,0.203,0.494,0.203c0.178,0,0.355-0.067,0.492-0.203c0.273-0.273,0.273-0.715,0-0.986l-4.711-4.711l4.711-4.711C16.172,4.759,16.172,4.317,15.898,4.045z"></path>
+                </svg>
+            </div>
+            <div class="setting-menus">
+                <div class="setting-menu">
+                    <div class="setting-label" style="font-size: 30px">
+                        设置
+                    </div>
+                    <div class="setting">
+                        <div class="setting-label">
+                            <div>用户ID</div>
+                            <div class="setting-sub-label">
+                                用于绑定你的云端聊天记录
+                            </div>
+                        </div>
+                        <input type="text" id="user-id" name="user_id">
+                    </div>
+                    <div class="setting">
+                        <div class="setting-label">
+                            <div>密码</div>
+                            <div class="setting-sub-label">
+                                访问密码，后台若需要则需要输入
+                            </div>
+                        </div>
+                        <input type="password" id="password" name="password">
+                    </div>
+                    <div class="setting">
+                        <div class="setting-label">
+                            <div>API Key</div>
+                            <div class="setting-sub-label">
+                                当输入API Key后,可跳过访问密码
+                            </div>
+                        </div>
+                        <input type="text" id="api-key" name="api_key">
+                    </div>
+                </div>
+            </div>
         </div>
         <div class="left-container">
             <div class="chat-list">
@@ -650,7 +759,7 @@
         };
     }
     let selectedChatId = generateUUID();
-    let config = {"userId": null, "password": "123456", "apikey": null, "chat_context_number": 5,
+    let config = {"userId": null, "password": null, "apikey": null, "chat_context_number": 5,
         "model_config": {"model": "gpt-3.5-turbo", "temperature": 0.9, "max_tokens": 2000}};
     let model_config = {"model": "gpt-3.5-turbo", "temperature": 0.9, "max_tokens": 2000};
     let chats = [generateChatInfo(selectedChatId)];
