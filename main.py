@@ -596,49 +596,6 @@ async def save_all_user_dict():
     lock.release()
 
 
-@app.route('/getMode', methods=['GET'])
-def get_mode():
-    """
-    获取当前对话模式
-    :return:
-    """
-    check_session(session)
-    if not check_user_bind(session):
-        return "normal"
-    user_info = get_user_info(session.get('user_id'))
-    chat_id = user_info['selected_chat_id']
-    chat_with_history = user_info['chats'][chat_id]['chat_with_history']
-    if chat_with_history:
-        return {"mode": "continuous"}
-    else:
-        return {"mode": "normal"}
-
-
-@app.route('/changeMode/<status>', methods=['GET'])
-def change_mode(status):
-    """
-    切换对话模式
-    :return:
-    """
-    # TODO 待删除
-    check_session(session)
-    if not check_user_bind(session):
-        return {"code": -1, "msg": "请先创建或输入已有用户id"}
-    user_info = get_user_info(session.get('user_id'))
-    chat_id = user_info['selected_chat_id']
-    if status == "normal":
-        user_info['chats'][chat_id]['chat_with_history'] = False
-        print("开启普通对话")
-        message = {"role": "system", "content": "切换至普通对话"}
-    else:
-        user_info['chats'][chat_id]['chat_with_history'] = True
-        user_info['chats'][chat_id]['have_chat_context'] = 0
-        print("开启连续对话")
-        message = {"role": "system", "content": "切换至连续对话"}
-    user_info['chats'][chat_id]['messages_history'].append(message)
-    return {"code": 200, "data": message}
-
-
 @app.route('/selectChat', methods=['GET'])
 def select_chat():
     """

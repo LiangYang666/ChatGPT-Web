@@ -617,23 +617,6 @@
 
     let newchat =  $("#newchat");
 
-    function getMode() {
-        // TODO 弃用
-        $.ajax({
-            url: "/getMode",
-            type: "Get",
-            dataType: "json",
-            success: function (data) {
-                console.log(data);
-                if (data.mode === "normal") {
-                    $("#chmod-btn").text("当前为普通对话");
-                } else {
-                    $("#chmod-btn").text("当前为连续对话");
-                }
-            }
-        })
-    }
-
     function renderHeadInfo() {
         if (chats.length === 0) {   // 未登陆或授权
             $(".head-chat-name").text("未绑定用户");
