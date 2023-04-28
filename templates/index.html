@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>ChatGPT</title>
-{#    标签页图标显示#}
+<!--  标签页图标显示-->
     <link rel="shortcut icon" href="/static/favicon-32x32.png" type="image/x-icon">
     <style type="text/css">
         *{
@@ -47,7 +47,6 @@
             flex-flow: column;
         }
         .chat-list{
-            {#width: 100%;#}
             overflow-y: scroll;
             flex: 1;
         }
@@ -224,7 +223,7 @@
         .button-area button:active{
             background-color: #bdbdbd;
         }
-        {#markdown列表样式#}
+        /* markdown列表样式 */
         .markdown ol, .markdown ul {
             padding-left: 1.5em;
         }
@@ -235,7 +234,7 @@
             list-style-type: disc;
         }
 
-        {#markdown代码样式 包含行号#}
+        /* markdown代码样式 包含行号 */
         .markdown pre {
             padding: 0.5em;
             overflow: auto;
@@ -247,7 +246,7 @@
             padding: .1rem .1rem;
             color: #f8f8f2;
         }
-        {#代码复制按钮格式#}
+        /* 代码复制按钮格式 */
         .markdown pre .code-copy-btn {
             -webkit-user-select: none;
             -moz-user-select: none;
@@ -262,7 +261,7 @@
             color: hsla(0,0%,54.9%,.8);
             transition: color .1s;
         }
-        {#行内代码段样式#}
+        /* 行内代码段样式 */
         .markdown code {
             color: #c7254e;
             background-color: #f9f2f4;
@@ -564,7 +563,7 @@
                         <a href="https://github.com/LiangYang666/ChatGPT-Web">
                             <div class="toggle-btn">
                                 <svg class="svg-icon" viewBox="-2 -2 20 20">
-{#                                    GitHub标志 #}
+                                    <!-- GitHub标志 -->
                                     <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
                                 </svg>
                             </div>
@@ -596,8 +595,7 @@
         </div>
 
     </div>
-{#    当移动到消息框时显示的复制按钮 #}
-{#                默认不显示，由js控制显示#}
+<!--  当移动到消息框时显示的复制按钮 默认不显示，由js控制显示 -->
     <div class="menu" id="menu">
         <button class="menu-btn" id="copy-btn">复制</button>
         <button class="menu-btn" id="resend-btn">重新发送</button>
