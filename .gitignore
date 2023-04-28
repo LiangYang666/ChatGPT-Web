@@ -1,3 +1,5 @@
 .idea/
 __pycache__/
 *.pkl
+
+node_modules

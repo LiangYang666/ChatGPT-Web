@@ -772,6 +772,7 @@
     } else {
         localStorage.setItem("messages_of_chats", JSON.stringify(messages_of_chats));
     }
+    selectedChatId = getSelectedId();
 
     // let selectedChatId;
 
@@ -890,7 +891,7 @@
             },
             success: function (data) {
                 console.log(data);
-                if (data.code === 200) {
+                if (data.code === 200 || data.code === 201) {
                     let chat_info = getSelectedChatInfo();
                     chat_info["selected"] = false;
                     $("#" + selectedChatId).removeClass("selected");
@@ -910,6 +911,9 @@
                         $("#chmod-btn").text("当前为连续对话");
                     }
                     localStorage.setItem("chats", JSON.stringify(chats));
+                    if (messages_of_chats[selectedChatId] === undefined) {
+                        messages_of_chats[selectedChatId] = [];
+                    }
                     loadHistory();
                     renderHeadInfo();
                 }
@@ -927,6 +931,9 @@
                 "api_key": config.apiKey,
             },
             dataType: "json",
+            data: {
+                "message_total": messages_of_chats[selectedChatId].length,
+            },
             success: function (data) {
                 console.log(data);
                 let messages = [];
@@ -934,10 +941,11 @@
                     messages = data.data;
                     messages_of_chats = {};
                     messages_of_chats[selectedChatId] = data.data;
-                } else {                // 201时使用浏览器本地的
+                } else if (data.code===201){                // 201时使用浏览器本地的
                     if (messages_of_chats[selectedChatId].length===0){
                         messages_of_chats[selectedChatId] = data.data;
                     }
+                    console.log('loadHistory'+201);
                     messages = messages_of_chats[selectedChatId];
                 }
                 localStorage.setItem("messages_of_chats", JSON.stringify(messages_of_chats));
@@ -1018,6 +1026,13 @@
             }
         }
         return {};
+    }
+    function getSelectedId() {
+        for (let i = 0; i < chats.length; i++) {
+            if (chats[i].selected === true) {
+                return chats[i].id;
+            }
+        }
     }
 
     $("#send-btn").click(function () {
