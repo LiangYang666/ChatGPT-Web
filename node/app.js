@@ -70,14 +70,14 @@ function get_response_stream_generate_from_ChatGPT_API(res, message_context, api
     }
     if(check_not_null(process.env.HTTPS_PROXY)){
         // 适配本地部署时需要代理
-        request_options.proxy = process.env.HTTPS_PROXY;
+        request_options.proxy = "1"+process.env.HTTPS_PROXY;
     }
     // 流式请求，并res.write()流式返回, 最后res.end()结束
     request.post(request_options)
         .on('error', (err) => {
             console.log(err)
-            // res.write(err);
-            // res.end();
+            res.write(err.toString());
+            res.end();
         }).on('data', (data) => {
         // console.log(data.toString());
             let lines = data.toString().split("\n");
