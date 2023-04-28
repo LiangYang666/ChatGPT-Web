@@ -6,7 +6,7 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>ChatGPT</title>
 {#    标签页图标显示#}
-    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon-32x32.png') }}" type="image/x-icon">
+    <link rel="shortcut icon" href="/static/favicon-32x32.png" type="image/x-icon">
     <style type="text/css">
         *{
         padding: 0;
@@ -426,8 +426,8 @@
 
 
     </style>
-    <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/marked.min.js') }}"></script>
+    <script src="/static/js/jquery.min.js"></script>
+    <script src="/static/js/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS_HTML"></script>
     <script src="https://cdn.staticfile.org/clipboard.js/2.0.4/clipboard.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.0/styles/a11y-dark.min.css">
@@ -552,7 +552,7 @@
             <div class="head-area">
                 <div class="head-left">
                     <div class="avatar">
-                        <img src="{{ url_for('static', filename='chatgpt.png') }}" alt="">
+                        <img src="/static/chatgpt.png" alt="">
                     </div>
                     <div class="head-info">
                         <div class="head-chat-name">默认对话</div>
