@@ -15,16 +15,13 @@ PASSWORD = process.env.PASSWORD;
 let API_KEY = "";
 API_KEY = process.env.OPENAI_API_KEY;
 
-app.use(express.static('../templates'));
 app.use('/static', express.static('../static'));
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({extended: false}))
 // 定义index
 app.get('/', (req, res) => {
-    // 打印绝对路径
-    console.log(__dirname);
-    // 返回主页index.html
-    res.sendFile('index.html', {root: '../templates'});
+    // 返回主页templates中的index.html
+    res.sendFile(__dirname + '/templates/index.html');
 });
 
 app.get('/loadHistory', (req, res) => {
