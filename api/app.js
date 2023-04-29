@@ -16,6 +16,7 @@ let API_KEY = "";
 API_KEY = process.env.OPENAI_API_KEY;
 
 app.use('/static', express.static('../static'));
+app.use('/templates', express.static('../templates'));
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({extended: false}))
 // 定义index
