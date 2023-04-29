@@ -1,6 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const request = require('request');
+const path = require('path');
 const app = express();
 
 let project_info = "## ChatGPT 网页版    \n" +
@@ -16,14 +17,13 @@ let API_KEY = "";
 API_KEY = process.env.OPENAI_API_KEY;
 
 app.use('/static', express.static('../static'));
-app.use('/templates', express.static('../templates'));
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({extended: false}))
 // 定义index
 app.get('/', (req, res) => {
-    // 返回主页templates中的index.html
-    console.log("__dirname" + __dirname)
-    res.sendFile(__dirname + '/templates/index.html');
+    // 返回templates中的index.html
+    const filePath = path.resolve(__dirname, '..', 'templates', 'index.html');
+    res.sendFile(filePath);
 });
 
 app.get('/loadHistory', (req, res) => {
