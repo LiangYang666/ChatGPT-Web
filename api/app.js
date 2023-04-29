@@ -22,6 +22,7 @@ app.use(bodyParser.urlencoded({extended: false}))
 // 定义index
 app.get('/', (req, res) => {
     // 返回主页templates中的index.html
+    console.log("__dirname" + __dirname)
     res.sendFile(__dirname + '/templates/index.html');
 });
 
