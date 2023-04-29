@@ -21,6 +21,8 @@ app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({extended: false}))
 // 定义index
 app.get('/', (req, res) => {
+    // 打印绝对路径
+    console.log(__dirname);
     // 返回主页index.html
     res.sendFile('index.html', {root: '../templates'});
 });
