@@ -4,6 +4,14 @@
     {
       "src": "api/app.js",
       "use": "@now/node"
+    },
+    {
+      "src": "templates/**",
+      "use": "@now/static"
+    },
+    {
+      "src": "static/**",
+      "use": "@now/static"
     }
   ],
   "routes": [
