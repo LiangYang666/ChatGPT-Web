@@ -22,7 +22,7 @@ app.use(bodyParser.urlencoded({extended: false}))
 // 定义index
 app.get('/', (req, res) => {
     // 返回主页index.html
-    res.sendFile(__dirname + '/index.html');
+    res.sendFile('index.html', {root: '../templates'});
 });
 
 app.get('/loadHistory', (req, res) => {
