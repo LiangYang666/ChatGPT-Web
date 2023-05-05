@@ -1,19 +1,7 @@
-const next = require('next')
-const express = require('express');
-const bodyParser = require('body-parser');
-const request = require('request');
-const path = require('path');
-
-export const config = {
-  runtime: 'edge',
-};
-
-const dev = process.env.NODE_ENV !== 'production'
-const server = express();
-const app = next({ dev });
-const handle = app.getRequestHandler();
-
-
+function HomePage() {
+    return <div>Welcome !</div>
+}
+export default HomePage;
 
 let project_info = "## ChatGPT 网页版    \n" +
     " Code From  " +
@@ -27,9 +15,69 @@ PASSWORD = process.env.PASSWORD;
 let API_KEY = "";
 API_KEY = process.env.OPENAI_API_KEY;
 
-app.prepare().then(() => {
-    server.use('/static', express.static('../static'));
-    server.use('/templates', express.static('../templates'));
+
+function get_response_stream_generate_from_ChatGPT_API(res, message_context, apikey, message_history,
+                                                       model = "gpt-3.5-turbo", temperature = 0.9,
+                                                       presence_penalty = 0, max_tokens = 2000) {
+    if (!check_not_null(apikey)) {
+        apikey = API_KEY;
+    }
+    let headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + apikey
+    }
+    let request_data = {
+        "model": model,
+        "messages": message_context,
+        "temperature": temperature,
+        "presence_penalty": presence_penalty,
+        "max_tokens": max_tokens,
+        "stream": true,
+    }
+    // 使用代理访问
+    let request_options = {
+        url: "https://api.openai.com/v1/chat/completions",
+        headers: headers,
+        json: request_data,
+    }
+    if (check_not_null(process.env.HTTPS_PROXY)) {
+        // 适配本地部署时需要代理
+        request_options.proxy = process.env.HTTPS_PROXY;
+    }
+    // 流式请求，并res.write()流式返回, 最后res.end()结束
+    request.post(request_options)
+        .on('error', (err) => {
+            console.log(err)
+            res.write(err.toString());
+            res.end();
+        }).on('data', (data) => {
+        // console.log(data.toString());
+        let lines = data.toString().split("\n");
+        for (let i = 0; i < lines.length; i++) {
+            let line_str = lines[i];
+            if (line_str.startsWith("data:")) {
+                if (line_str.startsWith("data: [DONE]")) {
+                    console.log("***--***" + line_str);
+                    res.end();
+                    return;
+                } else {
+                    line_str = line_str.substring(5).trim();
+                    // console.log(line_str);
+                    let line_json = JSON.parse(line_str);
+                    let content = line_json.choices[0].delta.content;
+                    if (check_not_null(content)) {
+                        res.write(content);
+                        console.log(content);
+                    }
+                }
+            }
+        }
+    }).on('end', () => {
+        console.log("end");
+    });
+}
+function temp() {
+    const server = express();
     server.use(bodyParser.json())
     server.use(bodyParser.urlencoded({extended: false}))
 
@@ -60,66 +108,6 @@ app.prepare().then(() => {
     });
 
 
-    function get_response_stream_generate_from_ChatGPT_API(res, message_context, apikey, message_history,
-                                                           model = "gpt-3.5-turbo", temperature = 0.9,
-                                                           presence_penalty = 0, max_tokens = 2000) {
-        if (!check_not_null(apikey)) {
-            apikey = API_KEY;
-        }
-        let headers = {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + apikey
-        }
-        let request_data = {
-            "model": model,
-            "messages": message_context,
-            "temperature": temperature,
-            "presence_penalty": presence_penalty,
-            "max_tokens": max_tokens,
-            "stream": true,
-        }
-        // 使用代理访问
-        let request_options = {
-            url: "https://api.openai.com/v1/chat/completions",
-            headers: headers,
-            json: request_data,
-        }
-        if (check_not_null(process.env.HTTPS_PROXY)) {
-            // 适配本地部署时需要代理
-            request_options.proxy = process.env.HTTPS_PROXY;
-        }
-        // 流式请求，并res.write()流式返回, 最后res.end()结束
-        request.post(request_options)
-            .on('error', (err) => {
-                console.log(err)
-                res.write(err.toString());
-                res.end();
-            }).on('data', (data) => {
-            // console.log(data.toString());
-            let lines = data.toString().split("\n");
-            for (let i = 0; i < lines.length; i++) {
-                let line_str = lines[i];
-                if (line_str.startsWith("data:")) {
-                    if (line_str.startsWith("data: [DONE]")) {
-                        console.log("***--***" + line_str);
-                        res.end();
-                        return;
-                    } else {
-                        line_str = line_str.substring(5).trim();
-                        // console.log(line_str);
-                        let line_json = JSON.parse(line_str);
-                        let content = line_json.choices[0].delta.content;
-                        if (check_not_null(content)) {
-                            res.write(content);
-                            console.log(content);
-                        }
-                    }
-                }
-            }
-        }).on('end', () => {
-            console.log("end");
-        });
-    }
 
     server.post('/returnMessage', (req, res) => {
         let user_id = req.headers['user_id'];
@@ -180,6 +168,4 @@ app.prepare().then(() => {
     server.listen(process.env.PORT || 3000, () => {
         console.log('Server is running on port 3000');
     });
-})
-
-module.exports = app;
+}
