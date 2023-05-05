@@ -4,6 +4,11 @@ const request = require('request');
 const path = require('path');
 const app = express();
 
+export const config = {
+  runtime: 'edge',
+};
+
+
 let project_info = "## ChatGPT 网页版    \n" +
     " Code From  " +
     "[ChatGPT-Web](https://github.com/LiangYang666/ChatGPT-Web)  \n" +
