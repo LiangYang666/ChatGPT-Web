@@ -479,6 +479,7 @@ def return_message():
             lock.release()
             print("创建新的用户id:\t", user_id)
             session['user_id'] = user_id
+            url_redirect["user_id"] = user_id
             return url_redirect
         else:
             user_id = send_message
@@ -499,6 +500,7 @@ def return_message():
                 return "用户id不存在，请重新输入或创建新的用户id"
             else:
                 session['user_id'] = user_id
+                url_redirect["user_id"] = user_id
                 print("切换到已有用户id:\t", user_id)
                 # 重定向到index
                 return url_redirect
@@ -507,6 +509,7 @@ def return_message():
             if user_id in all_user_dict:
                 return "用户id已存在，请重新输入或切换到已有用户id"
             session['user_id'] = user_id
+            url_redirect["user_id"] = user_id
             user_dict = new_user_dict(user_id, send_time)
             lock.acquire()
             all_user_dict.put(user_id, user_dict)
@@ -530,6 +533,7 @@ def return_message():
             apikey = send_message.split(":")[1]
             user_info = get_user_info(session.get('user_id'))
             user_info['apikey'] = apikey
+            # TODO 前端未存储
             print("设置用户专属apikey:\t", apikey)
             return "设置用户专属apikey成功"
         elif send_message.startswith("rename_id:"):
@@ -545,9 +549,9 @@ def return_message():
                 session['user_id'] = new_user_id
                 asyncio.run(save_all_user_dict())
                 print("修改用户id:\t", new_user_id)
-                return f"修改成功,请牢记新的用户id为:{new_user_id}"
+                url_redirect["user_id"] = new_user_id
+                return url_redirect
         elif send_message == "查余额":
-            # TODO 查余额的返回值将被记录到前端的上下文 想办法解决
             user_info = get_user_info(session.get('user_id'))
             apikey = user_info.get('apikey')
             return get_balance(apikey)
