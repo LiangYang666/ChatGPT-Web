@@ -568,7 +568,6 @@ def return_message():
             if display_time:
                 messages_history.append({'role': 'web-system', "content": send_time})
             for m in messages:
-                # TODO 函数化
                 keys = list(m.keys())
                 for k in keys:
                     if k not in ['role', 'content']:

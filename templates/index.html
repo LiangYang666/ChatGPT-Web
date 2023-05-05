@@ -1098,9 +1098,9 @@
         let request_data = {
             // TODO 继承设置
                 "messages": message_contexts,
-                "max_tokens": 2000,
-                "model": "gpt-3.5-turbo",
-                "temperature": 0.9,
+                "max_tokens": config.model_config.max_tokens || 2000,
+                "model": config.model_config.model || "gpt-3.5-turbo",
+                "temperature": config.model_config.temperature || 0.9,
                 "stream": true,
                 "continues_chat": true,
                 "chat_id": selectedChatId,
