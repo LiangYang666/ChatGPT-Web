@@ -1124,7 +1124,7 @@
                 onprogress: function (e) {
                     let response = e.currentTarget.response;
                     response_text = response;
-                    console.log(response);
+                    // console.log(response);
                     if (response.includes("url_redirect")){
                         let response_json = JSON.parse(response.trim());
                         let url_redirect = response_json["url_redirect"];
