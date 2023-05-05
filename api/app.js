@@ -11,6 +11,7 @@ let project_info = "## ChatGPT 网页版    \n" +
 function check_not_null(value) {
     return value !== undefined && value !== null && value !== '' && value !== 'null';
 }
+
 let PASSWORD = "";
 PASSWORD = process.env.PASSWORD;
 let API_KEY = "";
