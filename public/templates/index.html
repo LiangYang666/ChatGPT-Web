@@ -777,7 +777,7 @@
     // let selectedChatId;
 
     $.ajax({
-        url: "/loadChats",
+        url: "/api/loadChats",
         type: "Get",
         headers: {
             "user_id": config.userId,
@@ -830,7 +830,7 @@
             return;
         }
         $.ajax({
-            url: "/newChat",
+            url: "/api/newChat",
             type: "Get",
             headers: {
                 "user_id": config.userId,
@@ -878,7 +878,7 @@
         let click = this;
         console.log(id);
         $.ajax({
-            url: "/selectChat",
+            url: "/api/selectChat",
             type: "Get",
             headers: {
                 "user_id": config.userId,
@@ -923,7 +923,7 @@
 
     function loadHistory() {
         $.ajax({
-            url: "/loadHistory",
+            url: "/api/loadHistory",
             type: "Get",
             headers: {
                 "user_id": config.userId,
@@ -1110,7 +1110,7 @@
         console.log(request_data);
         let response_text =  "";
         returnMessageAjax = $.ajax({
-            url: "/returnMessage",
+            url: "/api/returnMessage",
             headers: {
                 "Content-Type": "application/json",
                 "user_id": config.userId,
@@ -1246,7 +1246,7 @@
         // })
         // 改为fetch获取
         let decoder = new TextDecoder("utf-8");
-        fetch("/returnMessage", {
+        fetch("/api/returnMessage", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -1301,7 +1301,7 @@
     $('#del-btn').click(function () {
         // 弹窗提醒是否确认删除
         if (confirm("确认删除所有聊天记录吗？非默认对话时将会直接删除该对话")) {
-            $.get("/deleteHistory", function (data) {
+            $.get("/api/deleteHistory", function (data) {
                 console.log(data);
             });
             let chat_info = getSelectedChatInfo();
