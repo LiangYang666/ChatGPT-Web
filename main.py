@@ -335,7 +335,7 @@ def auth(request_head, session):
     else:
         if session.get('user_id') is not None:
             del session['user_id']
-        return False, "用户不存在，请在设置中填写正确的用户id"
+        return False, "用户不存在，请在设置中填写正确的用户id，或发送new:xxx创建新的用户，其中xxx为你的自定义id"
 
 
 @app.route('/loadChats', methods=['GET', 'POST'])
