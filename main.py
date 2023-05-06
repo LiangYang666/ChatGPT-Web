@@ -315,9 +315,9 @@ def auth(request_head, session):
     :param session: session
     :return: 验证结果
     """
-    user_id = request_head.get("user_id")
+    user_id = request_head.get("user-id")
     password = request_head.get("password")
-    apikey = request_head.get("apikey")
+    apikey = request_head.get("api-key")
 
     user_info = get_user_info(user_id)
     if len(PASSWORD) > 0 and password != PASSWORD:

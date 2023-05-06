@@ -753,7 +753,7 @@
         };
     }
     let selectedChatId = generateUUID();
-    let config = {"userId": null, "password": null, "apikey": null, "chat_context_number": 5,
+    let config = {"userId": null, "password": null, "apiKey": null, "chat_context_number": 5,
         "model_config": {"model": "gpt-3.5-turbo", "temperature": 0.9, "max_tokens": 2000}};
     let model_config = {"model": "gpt-3.5-turbo", "temperature": 0.9, "max_tokens": 2000};
     let chats = [generateChatInfo(selectedChatId)];
@@ -777,53 +777,57 @@
 
     // let selectedChatId;
 
-    $.ajax({
-        url: "/loadChats",
-        type: "Get",
-        headers: {
-            "user_id": config.userId,
-            "password": config.password,
-            "api_key": config.apiKey,
-        },
-        dataType: "json",
-        success: function (data) {
-            console.log(data);
-            if(data.code === 200){
-                chats = data.data;
-                localStorage.setItem("chats", JSON.stringify(chats));
-            }
-            let html = "";
-            for (let i = 0; i < chats.length; i++) {
-                console.log(chats[i].name)
-                console.log(chats[i].selected)
-                if(chats[i].selected === true){
-                    selectedChatId = chats[i].id;
-                    if(chats[i]["mode"]==="normal"){
-                        $("#chmod-btn").text("当前为普通对话");
+    function loadChats() {
+        $.ajax({
+            url: "/loadChats",
+            type: "Get",
+            headers: {
+                "user-id": config.userId,
+                "password": config.password,
+                "api-key": config.apiKey,
+            },
+            dataType: "json",
+            success: function (data) {
+                console.log(data);
+                if(data.code === 200){
+                    chats = data.data;
+                    localStorage.setItem("chats", JSON.stringify(chats));
+                }
+                let html = "";
+                for (let i = 0; i < chats.length; i++) {
+                    console.log(chats[i].name)
+                    console.log(chats[i].selected)
+                    if(chats[i].selected === true){
+                        selectedChatId = chats[i].id;
+                        if(chats[i]["mode"]==="normal"){
+                            $("#chmod-btn").text("当前为普通对话");
+                        } else {
+                            $("#chmod-btn").text("当前为连续对话");
+                        }
+                    }
+                    html += '<div class="chat" id='+chats[i].id+' data-name='+chats[i].name+' data-selected='+chats[i].selected+' data-messages_total='+chats[i].messages_total+'>' + chats[i].name + '</div>';
+                }
+                if(chats.length === 0){     // 表示是未绑定用户状态
+                    $("#del-btn").hide();
+                    $("#chmod-btn").hide();
+                    $(".chat-list").hide();
+                } else {
+                    $(".chat-list").append(html);
+                    $(".chat-list").append(newchat);
+                    // 将选中的selectedChat添加selected属性
+                    $("#"+selectedChatId).addClass("selected");
+                    if ($("#"+selectedChatId).data('name')!=='默认对话'){
+                        $("#del-btn").html("删除对话");
                     } else {
-                        $("#chmod-btn").text("当前为连续对话");
+                        $("#del-btn").html("删除聊天记录");
                     }
                 }
-                html += '<div class="chat" id='+chats[i].id+' data-name='+chats[i].name+' data-selected='+chats[i].selected+' data-messages_total='+chats[i].messages_total+'>' + chats[i].name + '</div>';
+                renderHeadInfo();
             }
-            if(chats.length === 0){     // 表示是未绑定用户状态
-                $("#del-btn").hide();
-                $("#chmod-btn").hide();
-                $(".chat-list").hide();
-            } else {
-                $(".chat-list").append(html);
-                $(".chat-list").append(newchat);
-                // 将选中的selectedChat添加selected属性
-                $("#"+selectedChatId).addClass("selected");
-                if ($("#"+selectedChatId).data('name')!=='默认对话'){
-                    $("#del-btn").html("删除对话");
-                } else {
-                    $("#del-btn").html("删除聊天记录");
-                }
-            }
-            renderHeadInfo();
-        }
-    })
+        })
+    }
+    loadChats();
+
     $("#newchat").click(function () {
         console.log("请输入会话名称");
         let name = prompt("请输入会话名称");
@@ -834,9 +838,9 @@
             url: "/newChat",
             type: "Get",
             headers: {
-                "user_id": config.userId,
+                "user-id": config.userId,
                 "password": config.password,
-                "api_key": config.apiKey,
+                "api-key": config.apiKey,
             },
             dataType: "json",
             data: {
@@ -882,9 +886,9 @@
             url: "/selectChat",
             type: "Get",
             headers: {
-                "user_id": config.userId,
+                "user-id": config.userId,
                 "password": config.password,
-                "api_key": config.apiKey,
+                "api-key": config.apiKey,
             },
             dataType: "json",
             data: {     // get 方法时 data放置于路径 ?id=
@@ -930,9 +934,9 @@
             url: "/loadHistory",
             type: "Get",
             headers: {
-                "user_id": config.userId,
+                "user-id": config.userId,
                 "password": config.password,
-                "api_key": config.apiKey,
+                "api-key": config.apiKey,
             },
             dataType: "json",
             data: {
@@ -1117,9 +1121,9 @@
             url: "/returnMessage",
             headers: {
                 "Content-Type": "application/json",
-                "user_id": config.userId,
+                "user-id": config.userId,
                 "password": config.password,
-                "api_key": config.apiKey,
+                "api-key": config.apiKey,
             },
             data: JSON.stringify(request_data),
             type: "Post",
@@ -1226,8 +1230,9 @@
             url: "/returnMessage",
             headers: {
                 "Content-Type": "application/json",
-                "user_id": config.userId,
+                "user-id": config.userId,
                 "password": config.password,
+                "api-key": config.apiKey
             },
             data: JSON.stringify(request_data),
             type: "Post",
@@ -1254,8 +1259,9 @@
         //   method: "POST",
         //   headers: {
         //     "Content-Type": "application/json",
-        //     "user_id": config.userId,
-        //     "password": config.password
+        //     "user-id": config.userId,
+        //     "password": config.password,
+        //     "api-key": config.apiKey
         //   },
         //   body: JSON.stringify(request_data),
         // }).then((response) => {
