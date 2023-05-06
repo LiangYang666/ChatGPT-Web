@@ -1074,7 +1074,8 @@
                 start_index = i;
                 get_total += 1;
                 if (get_total === config.chat_context_number){
-                    break;
+                    // TODO 当用户按下切换按钮时，重新开始计数
+                    break;      // 获得上下文起始位置 start_index
                 }
             }
         }
@@ -1096,7 +1097,6 @@
         }
 
         let request_data = {
-            // TODO 继承设置
                 "messages": message_contexts,
                 "max_tokens": config.model_config.max_tokens || 2000,
                 "model": config.model_config.model || "gpt-3.5-turbo",
