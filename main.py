@@ -727,7 +727,7 @@ def check_load_pickle():
         all_user_dict = LRUCache(USER_SAVE_MAX)
 
 
-if __name__ == '__main__':
+if __name__ == '__main__' or __name__ == 'app' or __name__ == 'main':
     print("持久化存储文件路径为:", os.path.join(os.getcwd(), USER_DICT_FILE))
     all_user_dict = LRUCache(USER_SAVE_MAX)
     check_load_pickle()
