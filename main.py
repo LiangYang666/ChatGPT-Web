@@ -28,7 +28,7 @@ with open("config.yaml", "r", encoding="utf-8") as f:
     CHAT_CONTEXT_NUMBER_MAX = config['CHAT_CONTEXT_NUMBER_MAX']     # 连续对话模式下的上下文最大数量 n，即开启连续对话模式后，将上传本条消息以及之前你和GPT对话的n-1条消息
     USER_SAVE_MAX = config['USER_SAVE_MAX']     # 设置最多存储n个用户，当用户过多时可适当调大
 
-if os.getenv("DEPLOY_ON_RAILWAY") is not None:  # 如果是在Railway上部署，需要删除代理
+if os.getenv("DEPLOY_ON_RAILWAY") is not None or os.getenv("DEPLOY_ON_ZEABUR"):  # 如果是云部署，需要删除代理
     os.environ.pop('HTTPS_PROXY', None)
 
 API_KEY = os.getenv("OPENAI_API_KEY", default=API_KEY)  # 如果环境变量中设置了OPENAI_API_KEY，则使用环境变量中的OPENAI_API_KEY
@@ -736,4 +736,5 @@ if __name__ == '__main__' or __name__ == 'main':
         # 退出程序
         print("请在openai官网注册账号，获取api_key填写至程序内或命令行参数中")
         exit()
-    app.run(host="0.0.0.0", port=PORT, debug=False)
+    if os.getenv("DEPLOY_ON_ZEABUR") is None:
+        app.run(host="0.0.0.0", port=PORT, debug=False)
