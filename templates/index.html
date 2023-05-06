@@ -718,8 +718,8 @@
 
     function renderHeadInfo() {
         if (chats.length === 0) {   // 未登陆或授权
-            $(".head-chat-name").text("未绑定用户");
-            $(".head-chat-info").text("当前浏览器未绑定用户");
+            $(".head-chat-name").text("未授权");
+            $(".head-chat-info").text("当前浏览器未绑定用户或访问密码错误");
         } else {
             $(".head-chat-name").text(getSelectedChatInfo().name);
             // 判断 messages_of_chats 中是否存在selectedChatId
