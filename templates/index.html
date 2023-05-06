@@ -439,7 +439,7 @@
     // toggle-chats-btn按下 设置left-container可见
     function toggle_settings_dialog() {
         if($("#settings-dialog").css("display") === "none"){
-            $("#api-key").val(config.apikey);
+            $("#api-key").val(config.apiKey);
             $("#user-id").val(config.userId);
             $("#password").val(config.password);
 
@@ -458,7 +458,7 @@
             if (config.userId !== $("#user-id").val() || config.password !== $("#password").val()){
                 user_change_flag = true;
             }
-            config.apikey = $("#api-key").val();
+            config.apiKey = $("#api-key").val();
             config.userId = $("#user-id").val();
             config.password = $("#password").val();
             // 保存设置
