@@ -1,27 +1,5 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "api/app.js",
-      "use": "@now/node"
-    },
-    {
-      "src": "templates/**",
-      "use": "@now/static"
-    },
-    {
-      "src": "static/**",
-      "use": "@now/static"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/static/(.*)",
-      "dest": "static/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "api/app.js"
-    }
-  ]
+  "github": {
+    "silent": true
+  }
 }
