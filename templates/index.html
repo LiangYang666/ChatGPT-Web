@@ -439,35 +439,36 @@
     // toggle-chats-btn按下 设置left-container可见
     function toggle_settings_dialog() {
         if($("#settings-dialog").css("display") === "none"){
-                $("#api-key").val(config.apikey);
-                $("#user-id").val(config.userId);
-                $("#password").val(config.password);
+            $("#api-key").val(config.apikey);
+            $("#user-id").val(config.userId);
+            $("#password").val(config.password);
 
-                let top = $(".content").offset().top;
-                let left = $(".content").offset().left;
-                let width = $(".content").width();
-                let height = $(".content").height()+$(".input-area").height();
-                $("#settings-dialog").css("top", top);
-                $("#settings-dialog").css("left", left);
-                $("#settings-dialog").css("width", width);
-                $("#settings-dialog").css("height", height);
-            } else {
-                // 获取设置值
-                let user_change_flag = false;
-                if (config.userId !== $("#user-id").val() || config.password !== $("#password").val()){
-                    user_change_flag = true;
-                }
-                config.apikey = $("#api-key").val();
-                config.userId = $("#user-id").val();
-                config.password = $("#password").val();
-                // 保存设置
-                localStorage.setItem("config", JSON.stringify(config));
-                if (user_change_flag){
-                    // 刷新页面
-                    location.reload();
-                }
+            let top = $(".content").offset().top;
+            let left = $(".content").offset().left;
+            let width = $(".content").width();
+            let height = $(".content").height()+$(".input-area").height();
+            $("#settings-dialog").css("top", top);
+            $("#settings-dialog").css("left", left);
+            $("#settings-dialog").css("width", width);
+            $("#settings-dialog").css("height", height);
+        } else {
+            // 获取设置值
+            console.log("关闭设置");
+            let user_change_flag = false;
+            if (config.userId !== $("#user-id").val() || config.password !== $("#password").val()){
+                user_change_flag = true;
             }
-            $("#settings-dialog").toggle();
+            config.apikey = $("#api-key").val();
+            config.userId = $("#user-id").val();
+            config.password = $("#password").val();
+            // 保存设置
+            localStorage.setItem("config", JSON.stringify(config));
+            if (user_change_flag){
+                // 刷新页面
+                location.reload();
+            }
+        }
+        $("#settings-dialog").toggle();
     }
     $(document).ready(function () {
         $("#toggle-chats-btn").click(function () {
@@ -922,6 +923,9 @@
     })
 
     function loadHistory() {
+        if (messages_of_chats[selectedChatId] === undefined) {
+            messages_of_chats[selectedChatId] = [];
+        }
         $.ajax({
             url: "/loadHistory",
             type: "Get",
