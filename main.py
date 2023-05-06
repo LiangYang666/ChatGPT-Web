@@ -2,7 +2,7 @@ import datetime
 import json
 
 import requests
-from flask import Flask, render_template, request, session
+from flask import Flask, render_template, request, session, send_file, make_response
 import os
 import uuid
 from LRU_cache import LRUCache
@@ -308,6 +308,32 @@ def load_messages():
         messages_history = user_info['chats'][chat_id]['messages_history']
         print(f"用户({session.get('user_id')})加载聊天记录，共{len(messages_history)}条记录")
     return {"code": code, "data": messages_history, "message": ""}
+
+
+@app.route('/downloadUserDictFile', methods=['GET', 'POST'])
+def download_user_dict_file():
+    """
+    下载用户字典文件
+    :return: 用户字典文件
+    """
+    check_session(session)
+    success, message = auth(request.headers, session)
+    if not success:
+        return "未授权，无法下载"
+
+    response = make_response(send_file(USER_DICT_FILE, as_attachment=True))
+    response.headers["Content-Disposition"] = f"attachment; filename={USER_DICT_FILE}"
+    return response
+
+
+@app.route('/uploadUserDictFile', methods=['POST'])
+def upload_user_dict_file():
+    file = request.files.get('file')        # 获取上传的文件
+    if file:
+        # TODO 处理上传的文件
+        return '文件上传成功'
+    else:
+        return '文件上传失败'
 
 
 def auth(request_head, session):

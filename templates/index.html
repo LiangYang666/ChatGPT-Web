@@ -422,6 +422,15 @@
             font-size: 12px;
             color: #9e9e9e;
         }
+        .label-svg-button{
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .label-svg-button div{
+            padding-left: 5px;
+            padding-right: 5px;
+        }
 
 
     </style>
@@ -521,6 +530,37 @@
                             </div>
                         </div>
                         <input type="text" id="api-key" name="api_key">
+                    </div>
+                    <div class="setting">
+                        <div class="label-svg-button">
+                            <div class="setting-label">
+                                <div>下载所有用户记录</div>
+                                <div class="setting-sub-label">
+                                    使用管理员密码可下载
+                                </div>
+                            </div>
+                            <div id="userDictFileDownload">
+                                <svg class="svg-icon" viewBox="0 0 20 20">
+                                    <path fill="none" d="M15.608,6.262h-2.338v0.935h2.338c0.516,0,0.934,0.418,0.934,0.935v8.879c0,0.517-0.418,0.935-0.934,0.935H4.392c-0.516,0-0.935-0.418-0.935-0.935V8.131c0-0.516,0.419-0.935,0.935-0.935h2.336V6.262H4.392c-1.032,0-1.869,0.837-1.869,1.869v8.879c0,1.031,0.837,1.869,1.869,1.869h11.216c1.031,0,1.869-0.838,1.869-1.869V8.131C17.478,7.099,16.64,6.262,15.608,6.262z M9.513,11.973c0.017,0.082,0.047,0.162,0.109,0.226c0.104,0.106,0.243,0.143,0.378,0.126c0.135,0.017,0.274-0.02,0.377-0.126c0.064-0.065,0.097-0.147,0.115-0.231l1.708-1.751c0.178-0.183,0.178-0.479,0-0.662c-0.178-0.182-0.467-0.182-0.645,0l-1.101,1.129V1.588c0-0.258-0.204-0.467-0.456-0.467c-0.252,0-0.456,0.209-0.456,0.467v9.094L8.443,9.553c-0.178-0.182-0.467-0.182-0.645,0c-0.178,0.184-0.178,0.479,0,0.662L9.513,11.973z"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="label-svg-button">
+                            <div class="setting-label">
+                                <div>上传并合并所有用户记录</div>
+                                <div class="setting-sub-label">
+                                    使用管理员密码可上传合并
+                                </div>
+                            </div>
+                            <div>
+                                <label for="userDictFileUpload">
+                                    <svg class="svg-icon" viewBox="0 0 20 20">
+                                        <path fill="none" d="M8.416,3.943l1.12-1.12v9.031c0,0.257,0.208,0.464,0.464,0.464c0.256,0,0.464-0.207,0.464-0.464V2.823l1.12,1.12c0.182,0.182,0.476,0.182,0.656,0c0.182-0.181,0.182-0.475,0-0.656l-1.744-1.745c-0.018-0.081-0.048-0.16-0.112-0.224C10.279,1.214,10.137,1.177,10,1.194c-0.137-0.017-0.279,0.02-0.384,0.125C9.551,1.384,9.518,1.465,9.499,1.548L7.76,3.288c-0.182,0.181-0.182,0.475,0,0.656C7.941,4.125,8.234,4.125,8.416,3.943z M15.569,6.286h-2.32v0.928h2.32c0.512,0,0.928,0.416,0.928,0.928v8.817c0,0.513-0.416,0.929-0.928,0.929H4.432c-0.513,0-0.928-0.416-0.928-0.929V8.142c0-0.513,0.416-0.928,0.928-0.928h2.32V6.286h-2.32c-1.025,0-1.856,0.831-1.856,1.856v8.817c0,1.025,0.832,1.856,1.856,1.856h11.138c1.024,0,1.855-0.831,1.855-1.856V8.142C17.425,7.117,16.594,6.286,15.569,6.286z"></path>
+                                    </svg>
+                                </label>
+                                <input type="file" id="userDictFileUpload" style="display:none;">
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -689,6 +729,65 @@
         $("#menu").css("display", "none");
     });
 
+    $("#userDictFileDownload").click(function () {
+        $.ajax({
+            url: "/downloadUserDictFile",
+            type: "Get",
+            headers: {
+                "user-id": config.userId,
+                "password": config.password,
+                "api-key": config.apiKey,
+                "cache-control": "no-cache"
+            },
+            success: function (data, status, xhr) {
+                // 判断若不是文件
+                if (xhr.getResponseHeader('Content-Type') !== "application/octet-stream") {
+                    alert(data);
+                    return;
+                }
+
+                let filename = "";
+                let contentDisposition = xhr.getResponseHeader('Content-Disposition');
+                if (contentDisposition && contentDisposition.indexOf('attachment') !== -1) {
+                    let filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+                    let matches = filenameRegex.exec(contentDisposition);
+                    if (matches != null && matches[1]) {
+                        filename = matches[1].replace(/['"]/g, '');
+                    }
+                }
+                let url = window.URL.createObjectURL(new Blob([data])); // 将二进制流转换为 URL 对象
+                let a = document.createElement("a");
+                a.style.display = "none";
+                a.href = url;
+                a.setAttribute("download", filename);
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            }
+
+        });
+    });
+    $("#userDictFileUpload").change(function () {
+        let file = this.files[0];
+        let formData = new FormData();
+        formData.append("file", file);
+        $.ajax({
+            url: "/uploadUserDictFile",
+            type: "POST",
+            headers: {
+                "user-id": config.userId,
+                "password": config.password,
+                "api-key": config.apiKey,
+                "cache-control": "no-cache"
+            },
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function (data) {
+                alert(data);
+            }
+        });
+    });
 
 
 </script>
