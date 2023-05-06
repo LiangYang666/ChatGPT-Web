@@ -17,16 +17,17 @@ app.config['SECRET_KEY'] = os.urandom(24)
 with open("config.yaml", "r", encoding="utf-8") as f:
     config = yaml.load(f, Loader=yaml.FullLoader)
     if 'HTTPS_PROXY' in config:
-        if os.environ.get('HTTPS_PROXY') is None:   # 优先使用环境变量中的代理，若环境变量中没有代理，则使用配置文件中的代理
+        if os.environ.get('HTTPS_PROXY') is None:  # 优先使用环境变量中的代理，若环境变量中没有代理，则使用配置文件中的代理
             os.environ['HTTPS_PROXY'] = config['HTTPS_PROXY']
     if 'PASSWORD' in config:
         PASSWORD = config['PASSWORD']
     else:
-        PASSWORD = ""       # 即不使用访问密码
+        PASSWORD = ""  # 即不使用访问密码
     PORT = config['PORT']
     API_KEY = config['OPENAI_API_KEY']
-    CHAT_CONTEXT_NUMBER_MAX = config['CHAT_CONTEXT_NUMBER_MAX']     # 连续对话模式下的上下文最大数量 n，即开启连续对话模式后，将上传本条消息以及之前你和GPT对话的n-1条消息
-    USER_SAVE_MAX = config['USER_SAVE_MAX']     # 设置最多存储n个用户，当用户过多时可适当调大
+    CHAT_CONTEXT_NUMBER_MAX = config[
+        'CHAT_CONTEXT_NUMBER_MAX']  # 连续对话模式下的上下文最大数量 n，即开启连续对话模式后，将上传本条消息以及之前你和GPT对话的n-1条消息
+    USER_SAVE_MAX = config['USER_SAVE_MAX']  # 设置最多存储n个用户，当用户过多时可适当调大
 
 if os.getenv("DEPLOY_ON_RAILWAY") is not None or os.getenv("DEPLOY_ON_ZEABUR"):  # 如果是云部署，需要删除代理
     os.environ.pop('HTTPS_PROXY', None)
@@ -123,7 +124,7 @@ def get_message_context(message_history, have_chat_context, chat_with_history):
         message_context.append(message_history[-1])
         total += len(message_history[-1]['content'])
 
-    print(f"len(message_context): {len(message_context)} total: {total}",)
+    print(f"len(message_context): {len(message_context)} total: {total}", )
     return message_context
 
 
@@ -152,7 +153,8 @@ def handle_messages_get_response(message, apikey, message_history, have_chat_con
 
 
 def get_response_stream_generate_from_ChatGPT_API(message_context, apikey, message_history,
-                                                  model="gpt-3.5-turbo", temperature=0.9, presence_penalty=0, max_tokens=2000):
+                                                  model="gpt-3.5-turbo", temperature=0.9, presence_penalty=0,
+                                                  max_tokens=2000):
     """
     从ChatGPT API获取回复
     :param apikey:
@@ -321,17 +323,19 @@ def auth(request_head, session):
 
     user_info = get_user_info(user_id)
     if len(PASSWORD) > 0 and password != PASSWORD:
-        return False, "访问密码错误，请输入正确的访问密码"
+        return False, "访问密码错误，请在设置中填写正确的访问密码"
 
     if user_info is not None:
         session['user_id'] = user_id
-        if apikey is not None and len(apikey) > 1:
+        if apikey is not None and len(apikey) > 1 and apikey != "null" and apikey != "undefined":
             user_info['apikey'] = apikey
+        else:
+            user_info['apikey'] = None
         return True, "success"
     else:
         if session.get('user_id') is not None:
             del session['user_id']
-        return False, "用户不存在"
+        return False, "用户不存在，请在设置中填写正确的用户id"
 
 
 @app.route('/loadChats', methods=['GET', 'POST'])
@@ -378,10 +382,7 @@ def new_user_dict(user_id, send_time):
                  "default_chat_id": chat_id}
 
     user_dict['chats'][chat_id]['messages_history'].insert(1, {"role": "assistant",
-                                                               "content": "- 创建新的用户id成功，请牢记该id  \n"
-                                                                          "- 您可以使用该网站提供的通用apikey进行对话，"
-                                                                          "也可以输入 set_apikey:[your_apikey](https://platform.openai.com/account/api-keys) "
-                                                                          "来设置用户专属apikey"})
+                                                               "content": "创建新的用户id成功，请牢记该id"})
     return user_dict
 
 
@@ -403,7 +404,7 @@ def get_balance(apikey):
         data = subscription_response.json()
         total = data.get("hard_limit_usd")
     else:
-        return head+subscription_response.text
+        return head + subscription_response.text
 
     # start_date设置为今天日期前99天
     start_date = (datetime.datetime.now() - datetime.timedelta(days=99)).strftime("%Y-%m-%d")
@@ -418,7 +419,7 @@ def get_balance(apikey):
         days = min(5, len(daily_costs))
         recent = f"##### 最近{days}天使用情况  \n"
         for i in range(days):
-            cur = daily_costs[-i-1]
+            cur = daily_costs[-i - 1]
             date = datetime.datetime.fromtimestamp(cur.get("timestamp")).strftime("%Y-%m-%d")
             line_items = cur.get("line_items")
             cost = 0
@@ -426,12 +427,12 @@ def get_balance(apikey):
                 cost += item.get("cost")
             recent += f"\t{date}\t{cost / 100} \n"
     else:
-        return head+billing_response.text
+        return head + billing_response.text
 
-    return head+f"\n#### 总额:\t{total:.4f}  \n" \
-                f"#### 已用:\t{total_usage:.4f}  \n" \
-                f"#### 剩余:\t{total-total_usage:.4f}  \n" \
-                f"\n"+recent
+    return head + f"\n#### 总额:\t{total:.4f}  \n" \
+                  f"#### 已用:\t{total_usage:.4f}  \n" \
+                  f"#### 剩余:\t{total - total_usage:.4f}  \n" \
+                  f"\n" + recent
 
 
 @app.route('/returnMessage', methods=['GET', 'POST'])
@@ -444,6 +445,8 @@ def return_message():
     request_data = request.get_json()
 
     success, message = auth(request.headers, session)
+    if not success:
+        session.clear()
 
     messages = request_data.get("messages")
     max_tokens = request_data.get("max_tokens")
@@ -461,9 +464,9 @@ def return_message():
         return "### 帮助\n" \
                "1. 输入`new:xxx`创建新的用户id\n " \
                "2. 输入`id:your_id`切换到已有用户id，新会话时无需加`id:`进入已有用户\n" \
-               "3. 输入`set_apikey:`[your_apikey](https://platform.openai.com/account/api-keys)设置用户专属apikey，`set_apikey:none`可删除专属key\n" \
-               "4. 输入`rename_id:xxx`可将当前用户id更改\n" \
-               "5. 输入`查余额`可获得余额信息及最近几天使用量\n" \
+               "3. 输入`rename_id:xxx`可将当前用户id更改\n" \
+               "4. 输入`查余额`可获得余额信息及最近几天使用量\n" \
+               "5. 相关设置也可以在设置面板中进行设置\n" \
                "6. 输入`帮助`查看帮助信息"
     if session.get('user_id') is None:  # 如果当前session未绑定用户(VERCEL环境下)
         print("当前会话为首次请求，用户输入:\t", send_message)
@@ -591,8 +594,10 @@ def return_message():
                 if not save_message:
                     messages_history = []
                 generate = get_response_stream_generate_from_ChatGPT_API(messages, apikey, messages_history,
-                                                                         model=model, temperature=temperature, max_tokens=max_tokens)
+                                                                         model=model, temperature=temperature,
+                                                                         max_tokens=max_tokens)
                 return app.response_class(generate(), mimetype='application/json')
+
 
 async def save_all_user_dict():
     """
@@ -641,7 +646,8 @@ def new_chat():
     user_info['selected_chat_id'] = new_chat_id
     user_info['chats'][new_chat_id] = new_chat_dict(user_id, name, time)
     print("新建聊天对象")
-    return {"code": 200, "data": {"name": name, "id": new_chat_id, "selected": True, "messages_total": len(user_info['chats'][new_chat_id]['messages_history'])}}
+    return {"code": 200, "data": {"name": name, "id": new_chat_id, "selected": True,
+                                  "messages_total": len(user_info['chats'][new_chat_id]['messages_history'])}}
 
 
 @app.route('/deleteHistory', methods=['GET'])
@@ -682,7 +688,7 @@ def check_load_pickle():
                 print(f"{user_info['chats'][chat_id]['name']}[{len(user_info['chats'][chat_id]['messages_history'])}] ",
                       end="")
             print()
-    elif os.path.exists("all_user_dict_v2.pkl"):    # 适配V2
+    elif os.path.exists("all_user_dict_v2.pkl"):  # 适配V2
         print('检测到v2版本的上下文，将转换为v3版本')
         with open("all_user_dict_v2.pkl", "rb") as pickle_file:
             all_user_dict = pickle.load(pickle_file)
