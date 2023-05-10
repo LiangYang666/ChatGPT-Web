@@ -1,5 +1,6 @@
 import datetime
 import json
+import shutil
 import tempfile
 
 import requests
@@ -353,6 +354,12 @@ def download_user_dict_file():
         return response
 
 
+def backup_user_dict_file():
+    backup_file_name = USER_DICT_FILE.replace(".pkl", f"_buckup_{datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')}.pkl")
+    shutil.copy(USER_DICT_FILE, backup_file_name)
+    print(f"备份用户字典文件{USER_DICT_FILE}为{backup_file_name}")
+
+
 @app.route('/uploadUserDictFile', methods=['POST'])
 def upload_user_dict_file():
     check_session(session)
@@ -389,6 +396,7 @@ def upload_user_dict_file():
             upload_user_info = upload_user_dict.get(user_id)
             if user_info is None or upload_user_info is None:
                 return "仅能合并相同用户id的记录，请确保所上传的记录与当前用户id一致"
+            backup_user_dict_file()
             for chat_id in upload_user_info['chats'].keys():
                 if user_info['chats'].get(chat_id) is None:
                     user_info['chats'][chat_id] = upload_user_info['chats'][chat_id]
@@ -417,6 +425,7 @@ def upload_user_dict_file():
             # 判断是否为LRUCache对象
             if not isinstance(upload_user_dict, LRUCache):
                 return "上传文件格式错误，无法合并用户记录"
+            backup_user_dict_file()
             lock.acquire()
             for user_id in list(upload_user_dict.keys()):
                 if all_user_dict.get(user_id) is None:
