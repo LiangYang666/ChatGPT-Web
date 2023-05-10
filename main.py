@@ -1,5 +1,6 @@
 import datetime
 import json
+import tempfile
 
 import requests
 from flask import Flask, render_template, request, session, send_file, make_response
@@ -23,6 +24,10 @@ with open("config.yaml", "r", encoding="utf-8") as f:
         PASSWORD = config['PASSWORD']
     else:
         PASSWORD = ""  # 即不使用访问密码
+    if 'ADMIN_PASSWORD' in config:
+        ADMIN_PASSWORD = config['ADMIN_PASSWORD']
+    else:
+        ADMIN_PASSWORD = ""
     PORT = config['PORT']
     API_KEY = config['OPENAI_API_KEY']
     CHAT_CONTEXT_NUMBER_MAX = config[
@@ -35,6 +40,9 @@ if os.getenv("DEPLOY_ON_RAILWAY") is not None or os.getenv("DEPLOY_ON_ZEABUR"): 
 API_KEY = os.getenv("OPENAI_API_KEY", default=API_KEY)  # 如果环境变量中设置了OPENAI_API_KEY，则使用环境变量中的OPENAI_API_KEY
 PORT = os.getenv("PORT", default=PORT)  # 如果环境变量中设置了PORT，则使用环境变量中的PORT
 PASSWORD = os.getenv("PASSWORD", default=PASSWORD)  # 如果环境变量中设置了PASSWORD，则使用环境变量中的PASSWORD
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", default=ADMIN_PASSWORD)  # 如果环境变量中设置了ADMIN_PASSWORD，则使用环境变量中的ADMIN_PASSWORD
+if ADMIN_PASSWORD == "":
+    ADMIN_PASSWORD = PASSWORD  # 如果ADMIN_PASSWORD为空，则使用PASSWORD
 
 STREAM_FLAG = True  # 是否开启流式推送
 USER_DICT_FILE = "all_user_dict_v3.pkl"  # 用户信息存储文件（包含版本）
@@ -317,21 +325,80 @@ def download_user_dict_file():
     :return: 用户字典文件
     """
     check_session(session)
-    success, message = auth(request.headers, session)
-    if not success:
-        return "未授权，无法下载"
+    if request.headers.get("admin-password") is None:
+        success, message = auth(request.headers, session)
+        if not success:
+            return "未授权，无法下载"
+        user_id = request.headers.get("user-id")
+        if user_id is None:
+            return "未绑定用户，无法下载"
+        select_user_dict = LRUCache(USER_SAVE_MAX)
+        lock.acquire()
+        select_user_dict.put(user_id, all_user_dict.get(user_id))
+        lock.release()
+        # 存储为临时文件再发送出去
+        with tempfile.NamedTemporaryFile(suffix='.pkl', delete=False, mode='wb') as temp_file:
+            # 将 Python 对象使用 pickle 序列化保存到临时文件中
+            pickle.dump(select_user_dict, temp_file)
+        response = make_response(send_file(temp_file.name, as_attachment=True))
+        response.headers["Content-Disposition"] = f"attachment; filename={user_id}_of_{USER_DICT_FILE}"
+        response.call_on_close(lambda: os.remove(temp_file.name))
+        return response
 
-    response = make_response(send_file(USER_DICT_FILE, as_attachment=True))
-    response.headers["Content-Disposition"] = f"attachment; filename={USER_DICT_FILE}"
-    return response
+    else:
+        if request.headers.get("admin-password") != ADMIN_PASSWORD:
+            return "管理员密码错误，无法下载"
+        response = make_response(send_file(USER_DICT_FILE, as_attachment=True))
+        response.headers["Content-Disposition"] = f"attachment; filename={USER_DICT_FILE}"
+        return response
 
 
 @app.route('/uploadUserDictFile', methods=['POST'])
 def upload_user_dict_file():
+    check_session(session)
     file = request.files.get('file')        # 获取上传的文件
     if file:
-        # TODO 处理上传的文件
-        return '文件上传成功'
+        if request.headers.get("admin-password") is None:
+            success, message = auth(request.headers, session)
+            if not success:
+                return "未授权，无法合并用户记录"
+            user_id = request.headers.get("user-id")
+            if user_id is None:
+                return "未绑定用户，无法合并用户记录"
+            if not file.filename.endswith(".pkl"):
+                return "上传文件格式错误，无法合并用户记录"
+
+            # 读取获取的文件
+            upload_user_dict = ""
+            with tempfile.NamedTemporaryFile(suffix='.pkl', delete=False, mode='wb') as temp_file:
+                file.save(temp_file.name)
+            # 将 Python 对象使用 pickle 序列化保存到临时文件中
+            try:
+                with open(temp_file.name, 'rb') as temp_file:
+                    upload_user_dict = pickle.load(temp_file)
+            except:
+                return "上传文件格式错误，无法解析以及合并用户记录"
+            finally:
+                os.remove(temp_file.name)
+            # 判断是否为LRUCache对象
+            if not isinstance(upload_user_dict, LRUCache):
+                return "上传文件格式错误，无法合并用户记录"
+            lock.acquire()
+            user_info = all_user_dict.get(user_id)
+            lock.release()
+            upload_user_info = upload_user_dict.get(user_id)
+            if user_info is None or upload_user_info is None:
+                return "仅能合并相同用户id的记录，请确保所上传的记录与当前用户id一致"
+            for chat_id in upload_user_info['chats'].keys():
+                if user_info['chats'].get(chat_id) is None:
+                    user_info['chats'][chat_id] = upload_user_info['chats'][chat_id]
+                else:
+                    new_chat_id = str(uuid.uuid1())
+                    user_info['chats'][new_chat_id] = upload_user_info['chats'][chat_id]
+            asyncio.run(save_all_user_dict())
+            return '个人用户记录合并完成'
+        else:
+            return '管理员无法上传用户记录'
     else:
         return '文件上传失败'
 

@@ -730,6 +730,19 @@
     });
 
     $("#userDictFileDownload").click(function () {
+        // 弹出选择框，选项有两个，覆盖或合并
+        let all = confirm("是否需要下载所有用户记录？\n下载所有用户记录需要管理员密码，点击取消将下载个人记录");
+        let adminPassword = undefined;
+        if (all) {
+            adminPassword = prompt("请输入管理员密码");
+            if (adminPassword === null) {
+                return;
+            }
+            console.log("下载所有用户记录");
+        } else {
+            console.log("下载个人记录");
+        }
+
         $.ajax({
             url: "/downloadUserDictFile",
             type: "Get",
@@ -737,11 +750,16 @@
                 "user-id": config.userId,
                 "password": config.password,
                 "api-key": config.apiKey,
+                "admin-password": adminPassword,
                 "cache-control": "no-cache"
+            },
+            xhrFields: {        // 必要，不能设置为blob，不然将数据乱码，因为blob是高级封装，不是原始数据
+                responseType: "arraybuffer"
             },
             success: function (data, status, xhr) {
                 // 判断若不是文件
                 if (xhr.getResponseHeader('Content-Type') !== "application/octet-stream") {
+                    console.log("不是文件");
                     alert(data);
                     return;
                 }
@@ -755,7 +773,9 @@
                         filename = matches[1].replace(/['"]/g, '');
                     }
                 }
-                let url = window.URL.createObjectURL(new Blob([data])); // 将二进制流转换为 URL 对象
+                let binaryData = [];
+                binaryData.push(data);
+                let url = window.URL.createObjectURL(new Blob(binaryData, {type: "application/octet-stream"})); // 将二进制流转换为 URL 对象
                 let a = document.createElement("a");
                 a.style.display = "none";
                 a.href = url;
@@ -763,14 +783,25 @@
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
+                a = null;
             }
-
         });
     });
     $("#userDictFileUpload").change(function () {
         let file = this.files[0];
         let formData = new FormData();
         formData.append("file", file);
+        let all = confirm("是否需要合并所有用户记录？\n合并所有用户记录需要管理员密码，点击取消将合并个人记录");
+        let adminPassword = undefined;
+        if (all) {
+            adminPassword = prompt("请输入管理员密码");
+            if (adminPassword === null) {
+                return;
+            }
+            console.log("下载所有用户记录");
+        } else {
+            console.log("下载个人记录");
+        }
         $.ajax({
             url: "/uploadUserDictFile",
             type: "POST",
@@ -778,6 +809,7 @@
                 "user-id": config.userId,
                 "password": config.password,
                 "api-key": config.apiKey,
+                "admin-password": adminPassword,
                 "cache-control": "no-cache"
             },
             data: formData,
