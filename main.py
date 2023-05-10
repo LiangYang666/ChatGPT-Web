@@ -355,6 +355,10 @@ def download_user_dict_file():
 
 
 def backup_user_dict_file():
+    """
+    备份用户字典文件
+    :return:
+    """
     backup_file_name = USER_DICT_FILE.replace(".pkl", f"_buckup_{datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')}.pkl")
     shutil.copy(USER_DICT_FILE, backup_file_name)
     print(f"备份用户字典文件{USER_DICT_FILE}为{backup_file_name}")
@@ -362,6 +366,10 @@ def backup_user_dict_file():
 
 @app.route('/uploadUserDictFile', methods=['POST'])
 def upload_user_dict_file():
+    """
+    上传用户字典文件 并合并记录
+    :return:
+    """
     check_session(session)
     file = request.files.get('file')        # 获取上传的文件
     if file:
