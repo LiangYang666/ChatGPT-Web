@@ -398,7 +398,39 @@ def upload_user_dict_file():
             asyncio.run(save_all_user_dict())
             return '个人用户记录合并完成'
         else:
-            return '管理员无法上传用户记录'
+            if request.headers.get("admin-password") != ADMIN_PASSWORD:
+                return "管理员密码错误，无法上传用户记录"
+            if not file.filename.endswith(".pkl"):
+                return "上传文件格式错误，无法上传用户记录"
+            # 读取获取的文件
+            upload_user_dict = ""
+            with tempfile.NamedTemporaryFile(suffix='.pkl', delete=False, mode='wb') as temp_file:
+                file.save(temp_file.name)
+            # 将 Python 对象使用 pickle 序列化保存到临时文件中
+            try:
+                with open(temp_file.name, 'rb') as temp_file:
+                    upload_user_dict = pickle.load(temp_file)
+            except:
+                return "上传文件格式错误，无法解析以及合并用户记录"
+            finally:
+                os.remove(temp_file.name)
+            # 判断是否为LRUCache对象
+            if not isinstance(upload_user_dict, LRUCache):
+                return "上传文件格式错误，无法合并用户记录"
+            lock.acquire()
+            for user_id in list(upload_user_dict.keys()):
+                if all_user_dict.get(user_id) is None:
+                    all_user_dict.put(user_id, upload_user_dict.get(user_id))
+                else:
+                    for chat_id in upload_user_dict.get(user_id)['chats'].keys():
+                        if all_user_dict.get(user_id)['chats'].get(chat_id) is None:
+                            all_user_dict.get(user_id)['chats'][chat_id] = upload_user_dict.get(user_id)['chats'][chat_id]
+                        else:
+                            new_chat_id = str(uuid.uuid1())
+                            all_user_dict.get(user_id)['chats'][new_chat_id] = upload_user_dict.get(user_id)['chats'][chat_id]
+            lock.release()
+            asyncio.run(save_all_user_dict())
+            return '所有用户记录合并完成'
     else:
         return '文件上传失败'
 
