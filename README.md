@@ -62,7 +62,7 @@
   ![image](https://github.com/LiangYang666/ChatGPT-Web/assets/38237931/51a40409-fc65-430d-a97a-ce5a59642041)
   > 8. 等待片刻后，将显示运行中，即部署完成，但此时还需要设置一些环境变量
   ![image](https://github.com/LiangYang666/ChatGPT-Web/assets/38237931/59599caa-13bb-4806-bf77-22dcc7a745dc)
-  分别设置`DEPLOY_ON_ZEABUR`为`true`,`PORT`为5000即可，如为保证安全性，防止他人使用还可设置`PASSWORD`以及`ADMIN_PASSWORD`环境变量(可暂不设置，有需要再设)，这两个环境变量分别代表普通访问密码，以及管理员密码，设置后用户访问网页时需要使用访问密码认证，而管理员密码用于下载以及合并所有用户的聊天记录时使用
+  分别设置`DEPLOY_ON_ZEABUR`为`true`,`PORT`为`5000`，以及`OPENAI_API_KEY`设置为你的apikey即可，如为保证安全性，防止他人使用还可设置`PASSWORD`以及`ADMIN_PASSWORD`环境变量(可暂不设置，有需要再设)，这两个环境变量分别代表普通访问密码，以及管理员密码，设置后用户访问网页时需要使用访问密码认证，而管理员密码用于下载以及合并所有用户的聊天记录时使用
   > 9. 设置访问域名，url，点击如下，再填入可用主机名保存url即可，如自己有域名，也可绑定自己的域名
   ![image](https://github.com/LiangYang666/ChatGPT-Web/assets/38237931/152e12d7-aecc-42dc-a6a2-0ac87a6e8391)
   ![image](https://github.com/LiangYang666/ChatGPT-Web/assets/38237931/0dff69bf-ba48-478c-9898-80e3e698a9ec)
