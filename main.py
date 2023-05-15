@@ -610,7 +610,7 @@ def return_message():
                "4. 输入`查余额`可获得余额信息及最近几天使用量\n" \
                "5. 相关设置也可以在设置面板中进行设置\n" \
                "6. 输入`帮助`查看帮助信息"
-    if session.get('user_id') is None:  # 如果当前session未绑定用户(VERCEL环境下)
+    if session.get('user_id') is None:  # 如果当前session未绑定用户
         print("当前会话为首次请求，用户输入:\t", send_message)
         if send_message.startswith("new:"):
             user_id = send_message.split(":")[1]
