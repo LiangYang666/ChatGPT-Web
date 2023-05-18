@@ -3,12 +3,13 @@
 <details>
 <summary>TODO List</summary>
 
-- [ ] 界面适应手机  
-- [ ] 处理聊天记录更多由本地完成，即js完成聊天记录的请求
-- [ ] 添加token设置栏，按钮中设置
-- [ ] 后端添加node.js可选
+
 - [ ] 界面优化  
-- [ ] 代码规范化，请求返回值规范、代码文件划分  
+- [ ] 代码规范化，请求返回值规范、代码文件划分
+- [x] 实现聊天记录文件下载，以及上传合并
+- [x] 界面适应手机  
+- [x] 处理聊天记录更多由本地完成，即js完成聊天记录的请求
+- [x] 添加token设置栏，按钮中设置
 - [x] 在连续对话模式下支持多人同时使用  
 - [x] 重载历史记录
 - [x] 切换聊天模式和重置时提示
@@ -21,13 +22,15 @@
 
 ## 特性
 > 极简配置  
-> 支持railway云部署  
+> 支持Zeabur云部署（推荐，两分钟部署完成）  
+> 支持railway云部署   
 > 支持多用户使用  
 > 多对话管理  
 > 公式显示  
 > 流式逐字加载显示  
 > 代码高亮  
 > 查余额  
+> 可设置访问密码
 
 ## 演示动图
 ![演示](https://user-images.githubusercontent.com/38237931/227176542-c924084c-8ceb-41cd-9e09-1f82e1d14366.gif)
@@ -41,8 +44,38 @@
 
 ## 部署方法
 分别介绍下面几种部署方法，选择一种即可，部署完成后直接跳转至后面的使用介绍继续即可
+
 <details>
-<summary>1. 本地源代码部署（推荐，方便更新，需要有代理）</summary>
+<summary>1. Zeabur云部署（最为推荐，无需代理，云部署，通过url随时随地访问，聊天记录云同步）</summary>  
+  
+  > - 关于Zeabur：Zeabur是云容器提供商，你能够使用它部署你的应用，并使用url链接随时随地访问你的应用，类似于Railway，但无时间限制  
+  > 1. 首先将代码fork到你的github中
+  > 2. 点击网址注册账号，[Zeabur](zeabur.com) ，绑定GitHub账号
+  > 3. 进入[项目创建链接](https://dash.zeabur.com/projects)，点击Create Project，输入名称 ChatGPT-Web创建项目
+  > 4. 创建完成后，点击如图，添加服务
+  ![image](https://github.com/LiangYang666/ChatGPT-Web/assets/38237931/eb9c8b10-de16-4cfe-906f-d5f64ccca693)
+  > 5. 弹出的界面中，点击如下
+  ![image](https://github.com/LiangYang666/ChatGPT-Web/assets/38237931/e8da843e-e4d0-4599-bdd1-9216ed6fdbdb)
+  > 6. 弹出界面中，左侧选择你的GitHub，如果未绑定，请授权Zeabur访问你GitHub的所有项目，搜索ChatGPT-Web，即你clone的仓库，点击Import
+  ![image](https://github.com/LiangYang666/ChatGPT-Web/assets/38237931/c462b508-e3e9-4d4a-9c81-2515b8242245)
+  > 7. 选择分支为main，点击部署
+  ![image](https://github.com/LiangYang666/ChatGPT-Web/assets/38237931/51a40409-fc65-430d-a97a-ce5a59642041)
+  > 8. 等待片刻后，将显示运行中，即部署完成，但此时还需要设置一些环境变量
+  ![image](https://github.com/LiangYang666/ChatGPT-Web/assets/38237931/59599caa-13bb-4806-bf77-22dcc7a745dc)
+  分别设置`DEPLOY_ON_ZEABUR`为`true`,`PORT`为`5000`，以及`OPENAI_API_KEY`设置为你的apikey即可，如为保证安全性，防止他人使用还可设置`PASSWORD`以及`ADMIN_PASSWORD`环境变量(可暂不设置，有需要再设)，这两个环境变量分别代表普通访问密码，以及管理员密码，设置后用户访问网页时需要使用访问密码认证，而管理员密码用于下载以及合并所有用户的聊天记录时使用
+  > 9. 设置访问域名，url，点击如下，再填入可用主机名保存url即可，如自己有域名，也可绑定自己的域名
+  ![image](https://github.com/LiangYang666/ChatGPT-Web/assets/38237931/152e12d7-aecc-42dc-a6a2-0ac87a6e8391)
+  ![image](https://github.com/LiangYang666/ChatGPT-Web/assets/38237931/0dff69bf-ba48-478c-9898-80e3e698a9ec)
+  > 10. 点击redeploy重新部署，等待片刻后部署完成，一般一分钟以内部署完成，若未刷新可手动刷新网页查看，使用生成的url访问即可使用
+  ![image](https://github.com/LiangYang666/ChatGPT-Web/assets/38237931/a00781f8-f594-4c35-9a61-a99162ef2552)
+  > 11. 使用new:xxx创建用户即可使用，或者上传已有聊天记录，相关使用方式见使用介绍
+  > 12. 请注意，当设置密码或其它环境变量时请在设置后重新部署，每次部署后都会清除聊天记录，可先下载好已有用户记录再重新部署
+
+  
+  
+</details>
+<details>
+<summary>2. 本地源代码部署（推荐，方便更新，需要有代理）</summary>
 
 > 前提：python3.7及以上运行环境
 > 1. 执行 `pip install -r requirements.txt`安装必要包
@@ -52,7 +85,7 @@
 > 7. 关于更新，当代码更新时，使用git pull更新重新部署即可  
 </details>
 <details>
-<summary>2. Railway部署（推荐，无需代理，云部署，通过url随时随地访问）</summary>  
+<summary>3. Railway部署（无需代理，云部署，通过url随时随地访问）</summary>  
   
   > - 关于Railway：Railway是云容器提供商，你能够使用它部署你的应用，并使用url链接随时随地访问你的应用，Railway使用前提是你的GitHub账号满180天，绑定并验证后每月送5美元和500小时的使用时长，大概21天，因此如果使用这种方式需要在某些不使用的时段停止你的容器  
   > 1. 首先将代码fork到你的github中
@@ -79,7 +112,7 @@
 </details>
 
 <details>
-<summary>3. Railway template部署（不推荐，代码迟滞高）</summary>  
+<summary>4. Railway template部署（不推荐，代码迟滞高）</summary>  
   
 > 1. 点击右侧按钮进行部署[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template/oT2ZUt?referralCode=LtUnsq)
 > 首次使用railway的用户需要先绑定github账号并登陆，并进行验证，验证后可获得5美元、500小时每月的免费额度，绑定完成后重新点击上方图标，进行部署，如图进入后填写相关信息和api key  
@@ -96,14 +129,14 @@
 </details>
 
 <details>
-<summary>4. 可执行文件部署（推荐无python运行环境使用，需要自己有代理）</summary>
+<summary>5. 可执行文件部署（推荐无python运行环境使用，需要自己有代理）</summary>
 
 待补充
 
 </details>
 
 <details>
-<summary>5. Docker部署（需要自己有代理）</summary>
+<summary>6. Docker部署（需要自己有代理）</summary>
 
 待补充
 
@@ -124,6 +157,7 @@
 
 
 ## 重要更新  
+> 2023.05.14 支持访问密码，支持Zeabur部署  
 > 2023.3.19: 代码高亮显示  
 > 2023.3.17: 显示公式  
 > 2023.3.17: 类似于chatgpt官网，支持实时流获取，即逐字获取动态加载显示  
