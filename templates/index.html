@@ -646,6 +646,13 @@
     });
 </script>
 <script>
+    function createHeaders() {
+        return {
+                "password": config.password,
+                "api-key": config.apiKey,
+                "user-id": encodeURIComponent(config.userId)
+            };
+    }
     // 当鼠标移动到 bubble-left时显示复制按钮
     $(document).on("mouseover", ".bubble-left", function () {
         let copyBtn = $("#menu");
@@ -742,17 +749,13 @@
         } else {
             console.log("下载个人记录");
         }
-
+        let headers = createHeaders();
+        headers["admin-password"] = adminPassword;
+        headers["cache-control"] = "no-cache"
         $.ajax({
             url: "/downloadUserDictFile",
             type: "Get",
-            headers: {
-                "user-id": config.userId,
-                "password": config.password,
-                "api-key": config.apiKey,
-                "admin-password": adminPassword,
-                "cache-control": "no-cache"
-            },
+            headers: headers,
             xhrFields: {        // 必要，不能设置为blob，不然将数据乱码，因为blob是高级封装，不是原始数据
                 responseType: "arraybuffer"
             },
@@ -802,16 +805,13 @@
         } else {
             console.log("下载个人记录");
         }
+        let headers = createHeaders();
+        headers["admin-password"] = adminPassword;
+        headers["cache-control"] = "no-cache"
         $.ajax({
             url: "/uploadUserDictFile",
             type: "POST",
-            headers: {
-                "user-id": config.userId,
-                "password": config.password,
-                "api-key": config.apiKey,
-                "admin-password": adminPassword,
-                "cache-control": "no-cache"
-            },
+            headers: headers,
             data: formData,
             processData: false,
             contentType: false,
@@ -907,17 +907,14 @@
     }
     selectedChatId = getSelectedId();
 
-    // let selectedChatId;
 
     function loadChats() {
+        console.log("start load chats");
+        let headers = createHeaders();
         $.ajax({
             url: "/loadChats",
             type: "Get",
-            headers: {
-                "user-id": config.userId,
-                "password": config.password,
-                "api-key": config.apiKey,
-            },
+            headers: headers,
             dataType: "json",
             success: function (data) {
                 console.log(data);
@@ -969,11 +966,7 @@
         $.ajax({
             url: "/newChat",
             type: "Get",
-            headers: {
-                "user-id": config.userId,
-                "password": config.password,
-                "api-key": config.apiKey,
-            },
+            headers: createHeaders(),
             dataType: "json",
             data: {
                 "name": name,
@@ -1017,11 +1010,7 @@
         $.ajax({
             url: "/selectChat",
             type: "Get",
-            headers: {
-                "user-id": config.userId,
-                "password": config.password,
-                "api-key": config.apiKey,
-            },
+            headers: createHeaders(),
             dataType: "json",
             data: {     // get 方法时 data放置于路径 ?id=
                 "id": id
@@ -1059,17 +1048,14 @@
     })
 
     function loadHistory() {
+        console.log("start load history");
         if (messages_of_chats[selectedChatId] === undefined) {
             messages_of_chats[selectedChatId] = [];
         }
         $.ajax({
             url: "/loadHistory",
             type: "Get",
-            headers: {
-                "user-id": config.userId,
-                "password": config.password,
-                "api-key": config.apiKey,
-            },
+            headers: createHeaders(),
             dataType: "json",
             data: {
                 "message_total": messages_of_chats[selectedChatId].length,
@@ -1249,14 +1235,11 @@
         console.log("[Request]");
         console.log(request_data);
         let response_text =  "";
+        let headers = createHeaders();
+        headers["Content-Type"] = "application/json";
         returnMessageAjax = $.ajax({
             url: "/returnMessage",
-            headers: {
-                "Content-Type": "application/json",
-                "user-id": config.userId,
-                "password": config.password,
-                "api-key": config.apiKey,
-            },
+            headers: headers,
             data: JSON.stringify(request_data),
             type: "Post",
             dataType: "text",
@@ -1358,14 +1341,11 @@
         console.log("[Memory Request]");
         console.log(request_data);
         let response_text =  "";
+        let headers = createHeaders();
+        headers["Content-Type"] = "application/json";
         $.ajax({
             url: "/returnMessage",
-            headers: {
-                "Content-Type": "application/json",
-                "user-id": config.userId,
-                "password": config.password,
-                "api-key": config.apiKey
-            },
+            headers: headers,
             data: JSON.stringify(request_data),
             type: "Post",
             dataType: "text",

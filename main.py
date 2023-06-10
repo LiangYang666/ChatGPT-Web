@@ -2,6 +2,7 @@ import datetime
 import json
 import shutil
 import tempfile
+import urllib.parse
 
 import requests
 from flask import Flask, render_template, request, session, send_file, make_response
@@ -460,6 +461,7 @@ def auth(request_head, session):
     :return: 验证结果
     """
     user_id = request_head.get("user-id")
+    user_id = urllib.parse.unquote(user_id)
     password = request_head.get("password")
     apikey = request_head.get("api-key")
 
