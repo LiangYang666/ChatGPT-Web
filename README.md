@@ -79,7 +79,7 @@
 
 > 前提：python3.7及以上运行环境
 > 1. 执行 `pip install -r requirements.txt`安装必要包
-> 2. 打开`config.yaml`文件，配置HTTPS_PROXY和OPENAI_API_KEY，相关细节已在配置文件中描述
+> 2. 打开`config.yaml`文件，配置HTTPS_PROXY和OPENAI_API_KEY，相关细节已在配置文件中描述，如果在境外部署无需代理，将HTTPS_PROXY行删除即可  
 > 5. 执行`python main.py`运行程序.若程序中未指定apikey也可以在终端执行时添加环境变量，如执行`OPANAI_API_KEY=sk-XXXX python main.py`来运行，其中`sk-XXXX`为你的apikey
 > 6. 打开本地浏览器访问`127.0.0.1:5000`,部署完成
 > 7. 关于更新，当代码更新时，使用git pull更新重新部署即可  
