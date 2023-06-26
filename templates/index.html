@@ -1240,6 +1240,8 @@
         let response_text =  "";
         let headers = createHeaders();
         headers["Content-Type"] = "application/json";
+        let index = 0;
+        let codeBacktickNum = 0;
         returnMessageAjax = $.ajax({
             url: "/returnMessage",
             headers: headers,
@@ -1249,6 +1251,18 @@
             xhrFields: {
                 onprogress: function (e) {
                     let response = e.currentTarget.response;
+                    if (response.slice(index).includes("`")){
+                        if (response.slice(index).includes("```")){
+                            codeBacktickNum += 1;
+                            index = response.length;
+                        }
+                        console.log("codeBacktickNum: "+codeBacktickNum);
+                    } else {
+                        index = response.length;
+                    }
+                    if (codeBacktickNum%2===1){
+                        response += "\n```"
+                    }
                     response_text = response;
                     // console.log(response);
                     if (response.includes("url_redirect")){
