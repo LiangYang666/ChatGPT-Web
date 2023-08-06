@@ -501,8 +501,14 @@ def load_chats():
                 mode = "continuous"
             else:
                 mode = "normal"
+
+            if "assistant_prompt" in chat_info:
+                assistant_prompt = chat_info['assistant_prompt']
+            else:
+                assistant_prompt = ""
             chats.append(
                 {"id": chat_id, "name": chat_info['name'], "selected": chat_id == user_info['selected_chat_id'],
+                 "assistant_prompt": assistant_prompt,
                  "mode": mode, "messages_total": len(user_info['chats'][chat_id]['messages_history'])})
     code = 200  # 200表示云端存储了 node.js改写时若云端不存储则返回201
     return {"code": code, "data": chats, "message": ""}
@@ -815,6 +821,31 @@ def delete_history():
         del user_info["chats"][chat_id]
     user_info['selected_chat_id'] = default_chat_id
     return "2"
+
+
+@app.route('/editChat', methods=['GET', 'POST'])
+def edit_chat():
+    check_session(session)
+    if not check_user_bind(session):
+        return {"code": -1, "msg": "请先创建或输入已有用户id"}
+    user_id = session.get('user_id')
+    user_info = get_user_info(user_id)
+    data = request.get_json()
+    id = data.get("id")
+    if data.get("name") is not None:
+        user_info["chats"][id]["name"] = data.get("name")
+    if data.get("mode") is not None:
+        mode = data.get("mode")
+        if mode == "normal":
+            user_info["chats"][id]['chat_with_history'] = False
+        else:
+            user_info["chats"][id]['chat_with_history'] = True
+
+    if data.get("assistant_prompt") is not None:
+        assistant_prompt = data.get("assistant_prompt")
+        user_info["chats"][id]["assistant_prompt"] = assistant_prompt
+
+    return {"code": 200, "msg": "修改成功"}
 
 
 def check_load_pickle():
