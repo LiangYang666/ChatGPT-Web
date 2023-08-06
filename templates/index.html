@@ -505,6 +505,7 @@
             // 获取设置值
             console.log("关闭设置");
             let chat_info = getSelectedChatInfo();
+            let original_name = chat_info["name"];
             chat_info["assistant_prompt"] = $("#chat-assistant-prompt").val();
             chat_info["name"] = $("#chat-name").val();
             localStorage.setItem("chats", JSON.stringify(chats));
@@ -531,9 +532,10 @@
                     }
                 }
             });
-
-            // 刷新页面
-            location.reload();
+            if (original_name !== chat_info["name"]){
+                // 刷新页面
+                location.reload();
+            }
         }
 
         $("#chat-setting-dialog").toggle();
