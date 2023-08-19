@@ -498,6 +498,7 @@
             console.log(getSelectedChatInfo()["assistant_prompt"]);
             console.log(getSelectedChatInfo().name);
             $("#chat-assistant-prompt").val(getSelectedChatInfo()["assistant_prompt"]);
+            $("#chat-context-size").val(getSelectedChatInfo()["context_size"] ? getSelectedChatInfo()["context_size"] : 5);
             $("#chat-name").val(getSelectedChatInfo().name);
 
 
@@ -508,12 +509,14 @@
             let original_name = chat_info["name"];
             chat_info["assistant_prompt"] = $("#chat-assistant-prompt").val();
             chat_info["name"] = $("#chat-name").val();
+            chat_info["context_size"] = parseInt($("#chat-context-size").val());
             localStorage.setItem("chats", JSON.stringify(chats));
             let request_data = {
                 "id": selectedChatId,
                 "name": chat_info["name"],
                 "assistant_prompt": chat_info["assistant_prompt"],
-                "mode": chat_info["mode"]
+                "mode": chat_info["mode"],
+                "context_size": chat_info["context_size"]
             }
             // 保存设置
             let headers = createHeaders();
@@ -656,6 +659,16 @@
                             </div>
                         </div>
                         <input type="text" id="chat-assistant-prompt" name="chat_assistant_prompt">
+                    </div>
+
+                    <div class="setting">
+                        <div class="setting-label">
+                            <div>上下文数量</div>
+                            <div class="setting-sub-label">
+                                连续对话模式时，请求的上下文数量
+                            </div>
+                        </div>
+                        <input type="number" id="chat-context-size" name="chat_context_size" min="1" max="20">
                     </div>
 
                     <div class="setting">
@@ -1313,12 +1326,16 @@
         renderHeadInfo();
         let start_index = 0;
         let get_total = 0;
+        let context_size = 5;
+        if ("context_size" in chat_info && chat_info["context_size"]>0){
+            context_size = chat_info["context_size"];
+        }
         for (let i=messages_of_chats[selectedChatId].length-1;i>=1;i--){
             let role = messages_of_chats[selectedChatId][i].role;
             if (role === "user" || role === "assistant"){
                 start_index = i;
                 get_total += 1;
-                if (get_total === config.chat_context_number){
+                if (get_total === context_size){
                     // TODO 当用户按下切换按钮时，重新开始计数
                     break;      // 获得上下文起始位置 start_index
                 }

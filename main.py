@@ -506,9 +506,11 @@ def load_chats():
                 assistant_prompt = chat_info['assistant_prompt']
             else:
                 assistant_prompt = ""
+            if "context_size" not in chat_info:
+                chat_info['context_size'] = 5
             chats.append(
                 {"id": chat_id, "name": chat_info['name'], "selected": chat_id == user_info['selected_chat_id'],
-                 "assistant_prompt": assistant_prompt,
+                 "assistant_prompt": assistant_prompt, "context_size": chat_info['context_size'],
                  "mode": mode, "messages_total": len(user_info['chats'][chat_id]['messages_history'])})
     code = 200  # 200表示云端存储了 node.js改写时若云端不存储则返回201
     return {"code": code, "data": chats, "message": ""}
@@ -834,6 +836,8 @@ def edit_chat():
     id = data.get("id")
     if data.get("name") is not None:
         user_info["chats"][id]["name"] = data.get("name")
+    if data.get("context_size") is not None:
+        user_info["chats"][id]["context_size"] = data.get("context_size")   # 每次发送请求时，发送的上下文数量
     if data.get("mode") is not None:
         mode = data.get("mode")
         if mode == "normal":
