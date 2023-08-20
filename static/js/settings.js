@@ -62,31 +62,7 @@ function toggle_chat_setting_dialog() {
         chat_info["assistant_prompt"] = $("#chat-assistant-prompt").val();
         chat_info["name"] = $("#chat-name").val();
         chat_info["context_size"] = parseInt($("#chat-context-size").val());
-        localStorage.setItem("chats", JSON.stringify(chats));
-        let request_data = {
-            "id": selectedChatId,
-            "name": chat_info["name"],
-            "assistant_prompt": chat_info["assistant_prompt"],
-            "mode": chat_info["mode"],
-            "context_size": chat_info["context_size"]
-        }
-        // 保存设置
-        let headers = createHeaders();
-        headers["Content-Type"] = "application/json";
-        $.ajax({
-            url: "/editChat",
-            headers: headers,
-            data: JSON.stringify(request_data),
-            type: "Post",
-            success: function (data) {
-                console.log(data);
-                if (data["code"] === 200) {
-                    console.log("修改成功");
-                } else {
-                    console.log("修改失败");
-                }
-            }
-        });
+        editCurrentChat();
         if (original_name !== chat_info["name"]) {
             // 刷新页面
             location.reload();

@@ -163,6 +163,30 @@ function loadHistory() {
     });
 }
 
+/**
+ * 编辑对话 首先本地storage保存，再请求服务器保存
+ */
+function editCurrentChat() {
+    localStorage.setItem("chats", JSON.stringify(chats));
+    let chat_info = getSelectedChatInfo();
+    // 保存设置
+    let headers = createHeaders();
+    headers["Content-Type"] = "application/json";
+    $.ajax({
+        url: "/editChat",
+        headers: headers,
+        data: JSON.stringify(chat_info),
+        type: "Post",
+        success: function (data) {
+            console.log(data);
+            if (data["code"] === 200) {
+                console.log("修改成功");
+            } else {
+                console.log("修改失败");
+            }
+        }
+    });
+}
 
 /**
  * 代码段复制函数

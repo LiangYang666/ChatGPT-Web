@@ -325,23 +325,7 @@ $('#chmod-btn').click(function () {
     var html = '<div class="item item-center"><span>' + display_content + '</span></div>'
     $(".content").append(html);
     $(".content").scrollTop($(".content")[0].scrollHeight);
-    let header = createHeaders();
-    header["Content-Type"] = "application/json";
-    $.ajax({
-        url: "/editChat",
-        headers: header,
-        data: JSON.stringify({"id": selectedChatId, "mode": chat_info["mode"]}),
-        type: "Post",
-        dataType: "json",
-        success: function (data) {
-            console.log(data);
-            if (data["code"] === 200) {
-                console.log("修改成功");
-            } else {
-                console.log("修改失败");
-            }
-        }
-    })
+    editCurrentChat();
 });
 
 

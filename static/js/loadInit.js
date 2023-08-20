@@ -36,4 +36,4 @@ loadHistory();
 
 let returnMessageAjax = null;
 
-let last_time = 0
+let last_time = 0;
