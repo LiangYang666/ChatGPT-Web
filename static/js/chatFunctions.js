@@ -144,7 +144,7 @@ function loadHistory() {
             var html = "";
             for (var i = 0; i < messages.length; i++) {
                 if (messages[i].role === "user") {
-                    html += '<div class="item item-right"><div class="bubble bubble-right">' + messages[i].content + '</div><div class="avatar"><img src="./static/people.jpg" /></div></div>';
+                    html += '<div class="item item-right"><div class="bubble bubble-right">' + marked.marked(messages[i].content) + '</div><div class="avatar"><img src="./static/people.jpg" /></div></div>';
                 } else if (messages[i].role === "assistant") {
                     html += '<div class="item item-left"><div class="avatar"><img src="./static/chatgpt.png" /></div><div class="bubble bubble-left markdown">' + marked.marked(messages[i].content) + '</div></div>';
                 } else if (messages[i].role === "web-system") {
