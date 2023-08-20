@@ -1,5 +1,6 @@
 import datetime
 import json
+import re
 import shutil
 import tempfile
 import urllib.parse
@@ -17,7 +18,9 @@ import yaml
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.urandom(24)
 
-with open("config.yaml", "r", encoding="utf-8") as f:
+DATA_DIR = "data"
+
+with open(os.path.join(DATA_DIR, "config.yaml"), "r", encoding="utf-8") as f:
     config = yaml.load(f, Loader=yaml.FullLoader)
     if 'HTTPS_PROXY' in config:
         if os.environ.get('HTTPS_PROXY') is None:  # 优先使用环境变量中的代理，若环境变量中没有代理，则使用配置文件中的代理
@@ -350,7 +353,7 @@ def download_user_dict_file():
     else:
         if request.headers.get("admin-password") != ADMIN_PASSWORD:
             return "管理员密码错误，无法下载"
-        response = make_response(send_file(USER_DICT_FILE, as_attachment=True))
+        response = make_response(send_file(os.path.join(DATA_DIR, USER_DICT_FILE), as_attachment=True))
         response.headers["Content-Disposition"] = f"attachment; filename={USER_DICT_FILE}"
         return response
 
@@ -361,7 +364,7 @@ def backup_user_dict_file():
     :return:
     """
     backup_file_name = USER_DICT_FILE.replace(".pkl", f"_buckup_{datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')}.pkl")
-    shutil.copy(USER_DICT_FILE, backup_file_name)
+    shutil.copy(os.path.join(DATA_DIR, USER_DICT_FILE), os.path.join(DATA_DIR, backup_file_name))
     print(f"备份用户字典文件{USER_DICT_FILE}为{backup_file_name}")
 
 
@@ -758,7 +761,7 @@ async def save_all_user_dict():
     """
     await asyncio.sleep(0)
     lock.acquire()
-    with open(USER_DICT_FILE, "wb") as f:
+    with open(os.path.join(DATA_DIR, USER_DICT_FILE), "wb") as f:
         pickle.dump(all_user_dict, f)
     # print("all_user_dict.pkl存储成功")
     lock.release()
@@ -860,8 +863,21 @@ def edit_chat():
 def check_load_pickle():
     global all_user_dict
 
-    if os.path.exists(USER_DICT_FILE):
-        with open(USER_DICT_FILE, "rb") as pickle_file:
+    data_files = os.listdir(DATA_DIR)
+    have_move = False       # 匹配新版迁移，新版本的用户记录移到了data目录中
+    for file in data_files:
+        if re.match(r"all_user_dict_.*\.pkl", file):
+            have_move = True
+            break
+
+    if not have_move:
+        files = os.listdir()
+        for file in files:
+            if re.match(r"all_user_dict_.*\.pkl", file):
+                shutil.move(file, DATA_DIR)
+
+    if os.path.exists(os.path.join(DATA_DIR, USER_DICT_FILE)):
+        with open(os.path.join(DATA_DIR, USER_DICT_FILE), "rb") as pickle_file:
             all_user_dict = pickle.load(pickle_file)
             all_user_dict.change_capacity(USER_SAVE_MAX)
         print(f"已加载上次存储的用户上下文，共有{len(all_user_dict)}用户, 分别是")
@@ -872,9 +888,9 @@ def check_load_pickle():
                 print(f"{user_info['chats'][chat_id]['name']}[{len(user_info['chats'][chat_id]['messages_history'])}] ",
                       end="")
             print()
-    elif os.path.exists("all_user_dict_v2.pkl"):  # 适配V2
+    elif os.path.exists(os.path.join(DATA_DIR, "all_user_dict_v2.pkl")):  # 适配V2
         print('检测到v2版本的上下文，将转换为v3版本')
-        with open("all_user_dict_v2.pkl", "rb") as pickle_file:
+        with open(os.path.join(DATA_DIR, "all_user_dict_v2.pkl"), "rb") as pickle_file:
             all_user_dict = pickle.load(pickle_file)
             all_user_dict.change_capacity(USER_SAVE_MAX)
         print("共有用户", len(all_user_dict), "个")
@@ -890,9 +906,9 @@ def check_load_pickle():
 
         asyncio.run(save_all_user_dict())
 
-    elif os.path.exists("all_user_dict.pkl"):  # 适配当出现这个时
+    elif os.path.exists(os.path.join(DATA_DIR, "all_user_dict.pkl")):  # 适配V1版本
         print('检测到v1版本的上下文，将转换为v3版本')
-        with open("all_user_dict.pkl", "rb") as pickle_file:
+        with open(os.path.join(DATA_DIR, "all_user_dict.pkl"), "rb") as pickle_file:
             all_user_dict = pickle.load(pickle_file)
             all_user_dict.change_capacity(USER_SAVE_MAX)
         print("共有用户", len(all_user_dict), "个")
@@ -907,7 +923,7 @@ def check_load_pickle():
                 all_user_dict.put(user_id, user_dict)  # 更新
         asyncio.run(save_all_user_dict())
     else:
-        with open(USER_DICT_FILE, "wb") as pickle_file:
+        with open(os.path.join(DATA_DIR, USER_DICT_FILE), "wb") as pickle_file:
             pickle.dump(all_user_dict, pickle_file)
         print("未检测到上次存储的用户上下文，已创建新的用户上下文")
 
@@ -918,7 +934,7 @@ def check_load_pickle():
 
 
 if __name__ == '__main__' or __name__ == 'main':
-    print("持久化存储文件路径为:", os.path.join(os.getcwd(), USER_DICT_FILE))
+    print("持久化存储文件路径为:", os.path.join(os.getcwd(), os.path.join(DATA_DIR, USER_DICT_FILE)))
     all_user_dict = LRUCache(USER_SAVE_MAX)
     check_load_pickle()
 
