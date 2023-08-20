@@ -33,7 +33,9 @@ function generateChatInfo(id) {
         "selected": true,
         "mode": "continuous",
         "memory_summarize": "你是一个AI助手",
-        "last_summarize_index": 0
+        "last_summarize_index": 0,
+        "context_size": 5,  // 连续对话时上下文发送的总数上限
+        "context_have": 0,  // 连续对话时已经记录的上下文数量，当用户切换对话模式时，将其置为0
     };
 }
 

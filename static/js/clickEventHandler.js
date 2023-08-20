@@ -38,6 +38,7 @@ $("#newchat").click(function () {
                 localStorage.setItem("chats", JSON.stringify(chats));
                 loadHistory();
                 renderChatHeadInfo();
+                editCurrentChat();
             }
         }
     })
@@ -119,6 +120,12 @@ $("#send-btn").click(function () {
     $(".content").scrollTop($(".content")[0].scrollHeight);
     let get_times = 0;
     let chat_info = getSelectedChatInfo();
+
+    if (chat_info["context_have"] === undefined || chat_info["context_have"]<=0) {
+        chat_info["context_have"] = 0;
+    }
+    chat_info["context_have"] += 1;
+
     // 判断chat_info里是否有assistant_prompt字段，如果有，再判断是否包含“<<>>"字符，有的话向前向后拼接text
     if ("assistant_prompt" in chat_info && chat_info["assistant_prompt"].indexOf("<<") !== -1 && chat_info["assistant_prompt"].indexOf(">>") !== -1) {
         let start_index = chat_info["assistant_prompt"].indexOf("<<");
@@ -134,17 +141,17 @@ $("#send-btn").click(function () {
     renderChatHeadInfo();
     let start_index = 0;
     let get_total = 0;
-    let context_size = 5;
-    if ("context_size" in chat_info && chat_info["context_size"] > 0) {
-        context_size = chat_info["context_size"];
+    if (chat_info["context_size"] === undefined) {
+        chat_info["context_size"] = 5;
     }
+    let context_size = chat_info["context_size"];
+
     for (let i = messages_of_chats[selectedChatId].length - 1; i >= 1; i--) {
         let role = messages_of_chats[selectedChatId][i].role;
         if (role === "user" || role === "assistant") {
             start_index = i;
             get_total += 1;
-            if (get_total === context_size) {
-                // TODO 当用户按下切换按钮时，重新开始计数
+            if (get_total === context_size || get_total === chat_info["context_have"]) {
                 break;      // 获得上下文起始位置 start_index
             }
         }
@@ -252,6 +259,7 @@ $("#send-btn").click(function () {
             });
             localStorage.setItem("messages_of_chats", JSON.stringify(messages_of_chats));
             // getSummarize();
+            chat_info["context_have"] += 1;
             renderChatHeadInfo();
         }
     });
@@ -323,6 +331,7 @@ $('#chmod-btn').click(function () {
     }
 
     var html = '<div class="item item-center"><span>' + display_content + '</span></div>'
+    chat_info["context_have"] = 0;  // 切换模式后，上下文数量清零
     $(".content").append(html);
     $(".content").scrollTop($(".content")[0].scrollHeight);
     editCurrentChat();
