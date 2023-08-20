@@ -834,6 +834,8 @@ def edit_chat():
     user_info = get_user_info(user_id)
     data = request.get_json()
     id = data.get("id")
+    if id not in user_info["chats"]:
+        return {"code": -1, "msg": "需要编辑的聊天对话不存在"}
     if data.get("name") is not None:
         user_info["chats"][id]["name"] = data.get("name")
     if data.get("context_size") is not None:
@@ -844,10 +846,13 @@ def edit_chat():
             user_info["chats"][id]['chat_with_history'] = False
         else:
             user_info["chats"][id]['chat_with_history'] = True
-
     if data.get("assistant_prompt") is not None:
         assistant_prompt = data.get("assistant_prompt")
         user_info["chats"][id]["assistant_prompt"] = assistant_prompt
+
+    if data.get("context_have") is not None:
+        context_have = data.get("context_have")
+        user_info["chats"][id]["context_have"] = context_have
 
     return {"code": 200, "msg": "修改成功"}
 
