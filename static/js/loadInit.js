@@ -37,3 +37,9 @@ loadHistory();
 let returnMessageAjax = null;
 
 let last_time = 0;
+
+/**
+ * 自动滚动标志,当流式接收消息时自动将滚动条滚动至底部，但当用户翻阅聊天记录时，不应自动滚动
+ * @type {boolean}
+ */
+let autoScrollFlag = true;

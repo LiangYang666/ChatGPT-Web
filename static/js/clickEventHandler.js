@@ -89,6 +89,15 @@ $(".chat-list").on('click', '.chat', function () {
     })
 })
 
+// 当用户自己滚动时，停止自动滚动
+$(".content").on('scroll', function () {
+    // 当用户滚动到底部时
+    if ($(".content").scrollTop() + $(".content").innerHeight() + 30 - $(".content")[0].scrollHeight >= 0) {
+        autoScrollFlag = true;
+    } else {
+        autoScrollFlag = false;
+    }
+});
 
 $("#send-btn").click(function () {
     console.log("click")
@@ -118,10 +127,11 @@ $("#send-btn").click(function () {
     let chat_item = $('<div class="item item-left"><div class="avatar"><img src="./static/chatgpt.png" /></div><div class="bubble bubble-left markdown">正在等待回复</div></div>')
     $(".content").append(chat_item);
     $(".content").scrollTop($(".content")[0].scrollHeight);
+    autoScrollFlag = true;  // 新的发送请求后，开启自动滚动
     let get_times = 0;
     let chat_info = getSelectedChatInfo();
 
-    if (chat_info["context_have"] === undefined || chat_info["context_have"]<=0) {
+    if (chat_info["context_have"] === undefined || chat_info["context_have"] <= 0) {
         chat_info["context_have"] = 0;
     }
     chat_info["context_have"] += 1;
@@ -235,7 +245,9 @@ $("#send-btn").click(function () {
                     MathJax.Hub.Typeset(div);
                     chat_item.find(".bubble").empty();
                     chat_item.find(".bubble").append(div);
-                    $(".content").scrollTop($(".content")[0].scrollHeight);
+                    if (autoScrollFlag) {
+                        $(".content").scrollTop($(".content")[0].scrollHeight);
+                    }
                 }
             },
             onload: function (e) {
