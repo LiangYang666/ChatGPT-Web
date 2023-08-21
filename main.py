@@ -20,6 +20,11 @@ app.config['SECRET_KEY'] = os.urandom(24)
 
 DATA_DIR = "data"
 
+# 适配python3.6
+loop = asyncio.get_event_loop()
+def asyncio_run(func):
+    loop.run_until_complete(func)
+
 with open(os.path.join(DATA_DIR, "config.yaml"), "r", encoding="utf-8") as f:
     config = yaml.load(f, Loader=yaml.FullLoader)
     if 'HTTPS_PROXY' in config:
@@ -209,7 +214,7 @@ def get_response_stream_generate_from_ChatGPT_API(message_context, apikey, messa
                 line_str = str(line, encoding='utf-8')
                 if line_str.startswith("data:"):
                     if line_str.startswith("data: [DONE]"):
-                        asyncio.run(save_all_user_dict())
+                        asyncio_run(save_all_user_dict())
                         break
                     line_json = json.loads(line_str[5:])
                     if 'choices' in line_json:
@@ -244,7 +249,7 @@ def get_response_stream_generate_from_ChatGPT_API(message_context, apikey, messa
 
 def handle_messages_get_response_stream(message, apikey, message_history, have_chat_context, chat_with_history):
     message_history.append({"role": "user", "content": message})
-    asyncio.run(save_all_user_dict())
+    asyncio_run(save_all_user_dict())
     message_context = get_message_context(message_history, have_chat_context, chat_with_history)
     generate = get_response_stream_generate_from_ChatGPT_API(message_context, apikey, message_history)
     return generate
@@ -415,7 +420,7 @@ def upload_user_dict_file():
                 else:
                     new_chat_id = str(uuid.uuid1())
                     user_info['chats'][new_chat_id] = upload_user_info['chats'][chat_id]
-            asyncio.run(save_all_user_dict())
+            asyncio_run(save_all_user_dict())
             return '个人用户记录合并完成'
         else:
             if request.headers.get("admin-password") != ADMIN_PASSWORD:
@@ -450,7 +455,7 @@ def upload_user_dict_file():
                             new_chat_id = str(uuid.uuid1())
                             all_user_dict.get(user_id)['chats'][new_chat_id] = upload_user_dict.get(user_id)['chats'][chat_id]
             lock.release()
-            asyncio.run(save_all_user_dict())
+            asyncio_run(save_all_user_dict())
             return '所有用户记录合并完成'
     else:
         return '文件上传失败'
@@ -685,7 +690,7 @@ def return_message():
                 session['user_id'] = None
                 print("删除用户id:\t", user_id)
                 # 异步存储all_user_dict
-                asyncio.run(save_all_user_dict())
+                asyncio_run(save_all_user_dict())
                 return url_redirect
         elif send_message.startswith("set_apikey:"):
             apikey = send_message.split(":")[1]
@@ -705,7 +710,7 @@ def return_message():
                 all_user_dict.put(new_user_id, user_info)
                 lock.release()
                 session['user_id'] = new_user_id
-                asyncio.run(save_all_user_dict())
+                asyncio_run(save_all_user_dict())
                 print("修改用户id:\t", new_user_id)
                 url_redirect["user_id"] = new_user_id
                 return url_redirect
@@ -736,16 +741,16 @@ def return_message():
                 response = get_response_from_ChatGPT_API(messages, apikey)
                 if save_message:
                     messages_history.append({"role": "assistant", "content": response})
-                asyncio.run(save_all_user_dict())
+                asyncio_run(save_all_user_dict())
 
                 print(f"用户({session.get('user_id')})得到的回复消息:{response[:40]}...")
                 # 异步存储all_user_dict
-                asyncio.run(save_all_user_dict())
+                asyncio_run(save_all_user_dict())
                 return response
             else:
                 if save_message:
                     messages_history.append(messages[-1])
-                asyncio.run(save_all_user_dict())
+                asyncio_run(save_all_user_dict())
                 if not save_message:
                     messages_history = []
                 generate = get_response_stream_generate_from_ChatGPT_API(messages, apikey, messages_history,
@@ -904,7 +909,7 @@ def check_load_pickle():
                                 user_info['chats'][chat_id]['messages_history'][i]["role"] == "system":
                             user_info['chats'][chat_id]['messages_history'][i]["role"] = "web-system"
 
-        asyncio.run(save_all_user_dict())
+        asyncio_run(save_all_user_dict())
 
     elif os.path.exists(os.path.join(DATA_DIR, "all_user_dict.pkl")):  # 适配V1版本
         print('检测到v1版本的上下文，将转换为v3版本')
@@ -921,7 +926,7 @@ def check_load_pickle():
                 user_dict['chats'][chat_id]['chat_with_history'] = user_info['chat_with_history']
                 user_dict['chats'][chat_id]['have_chat_context'] = user_info['have_chat_context']
                 all_user_dict.put(user_id, user_dict)  # 更新
-        asyncio.run(save_all_user_dict())
+        asyncio_run(save_all_user_dict())
     else:
         with open(os.path.join(DATA_DIR, USER_DICT_FILE), "wb") as pickle_file:
             pickle.dump(all_user_dict, pickle_file)
