@@ -273,6 +273,7 @@ $("#send-btn").click(function () {
             // getSummarize();
             chat_info["context_have"] += 1;
             renderChatHeadInfo();
+            editCurrentChat();  // 保存当前对话的context_have
         }
     });
 });

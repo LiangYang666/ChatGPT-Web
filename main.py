@@ -516,9 +516,11 @@ def load_chats():
                 assistant_prompt = ""
             if "context_size" not in chat_info:
                 chat_info['context_size'] = 5
+            if "context_have" not in chat_info:
+                chat_info["context_have"] = 1
             chats.append(
                 {"id": chat_id, "name": chat_info['name'], "selected": chat_id == user_info['selected_chat_id'],
-                 "assistant_prompt": assistant_prompt, "context_size": chat_info['context_size'],
+                 "assistant_prompt": assistant_prompt, "context_size": chat_info['context_size'], "context_have": chat_info["context_have"], 
                  "mode": mode, "messages_total": len(user_info['chats'][chat_id]['messages_history'])})
     code = 200  # 200表示云端存储了 node.js改写时若云端不存储则返回201
     return {"code": code, "data": chats, "message": ""}
