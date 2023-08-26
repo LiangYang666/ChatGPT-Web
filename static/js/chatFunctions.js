@@ -131,8 +131,7 @@ function loadHistory() {
             let messages = [];
             if (data.code === 200) {   //200 时使用云端给的
                 messages = data.data;
-                messages_of_chats = {};
-                messages_of_chats[selectedChatId] = data.data;
+                messages_of_chats[selectedChatId] = messages;
             } else if (data.code === 201) {                // 201时使用浏览器本地的
                 if (messages_of_chats[selectedChatId].length === 0) {
                     messages_of_chats[selectedChatId] = data.data;
@@ -144,7 +143,31 @@ function loadHistory() {
             var html = "";
             for (var i = 0; i < messages.length; i++) {
                 if (messages[i].role === "user") {
-                    html += '<div class="item item-right"><div class="bubble bubble-right">' + marked.marked(messages[i].content) + '</div><div class="avatar"><img src="./static/people.jpg" /></div></div>';
+
+                    let content = messages[i].content;
+                    let chat_info = getSelectedChatInfo();
+                    let assistant_prompt = chat_info["assistant_prompt"];
+                    if(assistant_prompt !== ""){
+                        if(chat_info["assistant_prompt"].indexOf("<<") !== -1 && chat_info["assistant_prompt"].indexOf(">>") !== -1){
+                            let start_index = chat_info["assistant_prompt"].indexOf("<<");
+                            let end_index = chat_info["assistant_prompt"].indexOf(">>");
+                            let pre = chat_info["assistant_prompt"].substring(0, start_index);
+                            let post = chat_info["assistant_prompt"].substring(end_index + 2);
+                            if (pre!==""){
+                                // 去除前缀
+                                if(content.startsWith(pre)){
+                                    content = content.substring(pre.length);
+                                }
+                            }
+                            if (post!==""){
+                                // 去除后缀
+                                if(content.endsWith(post)){
+                                    content = content.substring(0,content.length-post.length);
+                                }
+                            }
+                        }
+                    }
+                    html += '<div class="item item-right"><div class="bubble bubble-right">' + marked.marked(content) + '</div><div class="avatar"><img src="./static/people.jpg" /></div></div>';
                 } else if (messages[i].role === "assistant") {
                     html += '<div class="item item-left"><div class="avatar"><img src="./static/chatgpt.png" /></div><div class="bubble bubble-left markdown">' + marked.marked(messages[i].content) + '</div></div>';
                 } else if (messages[i].role === "web-system") {
