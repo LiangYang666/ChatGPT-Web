@@ -213,7 +213,7 @@ def get_response_stream_generate_from_ChatGPT_API(message_context, apikey, messa
                 if line_str.startswith("data:"):
                     if line_str.startswith("data: [DONE]"):
                         asyncio_run(save_all_user_dict())
-                        logger.info("回复内容：" + one_message["content"][:40])
+                        logger.info("用户得到的回复内容：{}...".format(one_message["content"][:200]))
                         break
                     line_json = json.loads(line_str[5:])
                     if 'choices' in line_json:
@@ -261,7 +261,8 @@ def check_session(current_session):
     :return: 当前session
     """
     if current_session.get('session_id') is not None:
-        logger.info("existing session, session_id:\t{}".format(current_session.get('session_id')))
+        pass
+        logger.debug("existing session, session_id:\t{}".format(current_session.get('session_id')))
     else:
         current_session['session_id'] = uuid.uuid1()
         logger.info("new session, session_id:\t{}".format(current_session.get('session_id')))
@@ -323,7 +324,8 @@ def load_messages():
         user_info = get_user_info(session.get('user_id'))
         chat_id = user_info['selected_chat_id']
         messages_history = user_info['chats'][chat_id]['messages_history']
-        logger.info(f"用户({session.get('user_id')})加载聊天记录，共{len(messages_history)}条记录")
+        chat_name = user_info['chats'][chat_id]['name']
+        logger.warning(f"用户({session.get('user_id')})加载“{chat_name}”对话的聊天记录，共{len(messages_history)}条记录")
     return {"code": code, "data": messages_history, "message": ""}
 
 
@@ -370,7 +372,7 @@ def backup_user_dict_file():
     backup_file_name = USER_DICT_FILE.replace(".pkl",
                                               f"_buckup_{datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')}.pkl")
     shutil.copy(os.path.join(DATA_DIR, USER_DICT_FILE), os.path.join(DATA_DIR, backup_file_name))
-    logger.info(f"备份用户字典文件{USER_DICT_FILE}为{backup_file_name}")
+    logger.warning(f"备份用户字典文件{USER_DICT_FILE}为{backup_file_name}")
 
 
 @app.route('/uploadUserDictFile', methods=['POST'])
@@ -634,7 +636,7 @@ def return_message():
                "5. 相关设置也可以在设置面板中进行设置\n" \
                "6. 输入`帮助`查看帮助信息"
     if session.get('user_id') is None:  # 如果当前session未绑定用户
-        logger.info("当前会话为首次请求，用户输入:\t"+send_message)
+        logger.warning("当前会话为首次请求，用户输入:\t"+send_message)
         if send_message.startswith("new:"):
             user_id = send_message.split(":")[1]
             url_redirect["user_id"] = user_id
@@ -645,7 +647,7 @@ def return_message():
             lock.acquire()
             all_user_dict.put(user_id, user_dict)  # 默认普通对话
             lock.release()
-            logger.info(f"创建新的用户id:\t{user_id}")
+            logger.warning(f"创建新的用户id:\t{user_id}")
             session['user_id'] = user_id
             url_redirect["user_id"] = user_id
             return url_redirect
@@ -653,10 +655,11 @@ def return_message():
             user_id = send_message
             user_info = get_user_info(user_id)
             if user_info is None:
+                logger.warning(f"用户输入的id{user_id}不存在")
                 return "用户id不存在，请重新输入或创建新的用户id"
             else:
                 session['user_id'] = user_id
-                logger.info(f"已有用户id:\t{user_id}")
+                logger.warning(f"切换到已有用户id:\t{user_id}")
                 # 重定向到index
                 url_redirect["user_id"] = user_id
                 return url_redirect
@@ -665,11 +668,12 @@ def return_message():
             user_id = send_message.split(":")[1].strip()
             user_info = get_user_info(user_id)
             if user_info is None:
+                logger.warning(f"用户尝试切换的的id{user_id}不存在")
                 return "用户id不存在，请重新输入或创建新的用户id"
             else:
                 session['user_id'] = user_id
                 url_redirect["user_id"] = user_id
-                logger.info(f"切换到已有用户id:\t{user_id}")
+                logger.warning(f"切换到已有用户id:\t{user_id}")
                 # 重定向到index
                 return url_redirect
         elif send_message.startswith("new:"):
@@ -682,18 +686,19 @@ def return_message():
             lock.acquire()
             all_user_dict.put(user_id, user_dict)
             lock.release()
-            logger.info(f"创建新的用户id:\t{user_id}")
+            logger.warning(f"创建新的用户id:\t{user_id}")
             return url_redirect
         elif send_message.startswith("delete:"):  # 删除用户
             user_id = send_message.split(":")[1]
             if user_id != session.get('user_id'):
+                logger.warning(f"用户({session.get('user_id')})尝试删除用户id({user_id})")
                 return "只能删除当前会话的用户id"
             else:
                 lock.acquire()
                 all_user_dict.delete(user_id)
                 lock.release()
                 session['user_id'] = None
-                logger.warning(f"删除用户id:\t{user_id}")
+                logger.warning(f"删除用户id:\t{user_id}成功")
                 # 异步存储all_user_dict
                 asyncio_run(save_all_user_dict())
                 return url_redirect
@@ -716,7 +721,7 @@ def return_message():
                 lock.release()
                 session['user_id'] = new_user_id
                 asyncio_run(save_all_user_dict())
-                logger.info(f"修改用户id:\t{new_user_id}")
+                logger.warning(f"修改用户id:\t{new_user_id}")
                 url_redirect["user_id"] = new_user_id
                 return url_redirect
         elif send_message == "查余额":
@@ -890,7 +895,7 @@ def check_load_pickle():
         with open(os.path.join(DATA_DIR, USER_DICT_FILE), "rb") as pickle_file:
             all_user_dict = pickle.load(pickle_file)
             all_user_dict.change_capacity(USER_SAVE_MAX)
-        logger.info(f"已加载上次存储的用户上下文，共有{len(all_user_dict)}用户, 分别是")
+        logger.warning(f"已加载上次存储的用户上下文，共有{len(all_user_dict)}用户, 分别是")
         for i, user_id in enumerate(list(all_user_dict.keys())):
             info = f"{i} 用户id:{user_id}\t对话统计:\t"
             user_info = all_user_dict.get(user_id)
@@ -898,11 +903,11 @@ def check_load_pickle():
                 info += f"{user_info['chats'][chat_id]['name']}[{len(user_info['chats'][chat_id]['messages_history'])}] "
             logger.info(info)
     elif os.path.exists(os.path.join(DATA_DIR, "all_user_dict_v2.pkl")):  # 适配V2
-        logger.info('检测到v2版本的上下文，将转换为v3版本')
+        logger.warning('检测到v2版本的上下文，将转换为v3版本')
         with open(os.path.join(DATA_DIR, "all_user_dict_v2.pkl"), "rb") as pickle_file:
             all_user_dict = pickle.load(pickle_file)
             all_user_dict.change_capacity(USER_SAVE_MAX)
-        logger.info(f"共有用户个{len(all_user_dict)}")
+        logger.warning(f"共有用户个{len(all_user_dict)}")
         for user_id in list(all_user_dict.keys()):
             user_info: dict = all_user_dict.get(user_id)
             for chat_id in user_info['chats'].keys():
@@ -916,11 +921,11 @@ def check_load_pickle():
         asyncio_run(save_all_user_dict())
 
     elif os.path.exists(os.path.join(DATA_DIR, "all_user_dict.pkl")):  # 适配V1版本
-        logger.info('检测到v1版本的上下文，将转换为v3版本')
+        logger.warning('检测到v1版本的上下文，将转换为v3版本')
         with open(os.path.join(DATA_DIR, "all_user_dict.pkl"), "rb") as pickle_file:
             all_user_dict = pickle.load(pickle_file)
             all_user_dict.change_capacity(USER_SAVE_MAX)
-        logger.info(f"共有用户{len(all_user_dict)}个")
+        logger.warning(f"共有用户{len(all_user_dict)}个")
         for user_id in list(all_user_dict.keys()):
             user_info: dict = all_user_dict.get(user_id)
             if "messages_history" in user_info:
@@ -943,7 +948,7 @@ def check_load_pickle():
 
 
 if __name__ == '__main__' or __name__ == 'main':
-    logger.info("持久化存储文件路径为:{}".format(os.path.join(os.getcwd(), os.path.join(DATA_DIR, USER_DICT_FILE))))
+    logger.warning("持久化存储文件路径为:{}".format(os.path.join(os.getcwd(), os.path.join(DATA_DIR, USER_DICT_FILE))))
     all_user_dict = LRUCache(USER_SAVE_MAX)
     check_load_pickle()
 
