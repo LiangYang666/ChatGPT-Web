@@ -94,8 +94,8 @@ function loadChats() {
                 $("#chmod-btn").hide();
                 $(".chat-list").hide();
             } else {
-                $(".chat-list").append(html);
                 $(".chat-list").append(newchat);
+                $(".chat-list").append(html);
                 // 将选中的selectedChat添加selected属性
                 $("#" + selectedChatId).addClass("selected");
                 // if ($("#"+selectedChatId).data('name')!=='默认对话'){

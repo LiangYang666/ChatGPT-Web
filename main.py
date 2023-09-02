@@ -829,7 +829,9 @@ def new_chat():
     # new_chat_id = str(uuid.uuid1())
     user_info['selected_chat_id'] = new_chat_id
     user_info['chats'][new_chat_id] = new_chat_dict(user_id, name, time)
+    user_info["chat_sticky_list"].insert(1, new_chat_id)
     logger.info("新建聊天对象")
+    asyncio_run(save_all_user_dict())
     return {"code": 200, "data": {"name": name, "id": new_chat_id, "selected": True,
                                   "messages_total": len(user_info['chats'][new_chat_id]['messages_history'])}}
 

@@ -19,8 +19,7 @@ $("#newchat").click(function () {
             if (data.code === 200 || data.code === 201) {
                 let html = '<div class="chat" id=' + data.data.id + ' data-name=' + data.data.name + ' data-selected=' + data.data.selected + ' data-messages_total=' + data.data.messages_total + '>' + data.data.name + '</div>';
                 // newchat.remove();
-                $(".chat-list").append(html);
-                $(".chat-list").append(newchat);
+                $(".chat-list").find(".chat").eq(1).after(html);
                 $("#" + selectedChatId).removeClass("selected");
                 selectedChatId = data.data.id;
                 $("#" + selectedChatId).addClass("selected");
