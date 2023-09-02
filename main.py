@@ -508,7 +508,21 @@ def load_chats():
     else:
         user_info = get_user_info(session.get('user_id'))
         chats = []
-        for chat_id, chat_info in user_info['chats'].items():
+        chat_ids = []
+        # 如果置顶聊天列表不为空
+        if "chat_sticky_list" in user_info:
+            for chat_id in user_info['chat_sticky_list']:
+                if user_info['chats'].get(chat_id) is not None:
+                    chat_ids.append(chat_id)
+        
+        for chat_id in user_info['chats'].keys():
+            if chat_id not in chat_ids:
+                chat_ids.append(chat_id)
+
+        user_info['chat_sticky_list'] = chat_ids
+
+        for i, chat_id in enumerate(chat_ids):
+            chat_info = user_info['chats'][chat_id]
             if chat_info['chat_with_history']:
                 mode = "continuous"
             else:
@@ -525,7 +539,7 @@ def load_chats():
             chats.append(
                 {"id": chat_id, "name": chat_info['name'], "selected": chat_id == user_info['selected_chat_id'],
                  "assistant_prompt": assistant_prompt, "context_size": chat_info['context_size'],
-                 "context_have": chat_info["context_have"],
+                 "context_have": chat_info["context_have"], "sticky_number": i,
                  "mode": mode, "messages_total": len(user_info['chats'][chat_id]['messages_history'])})
     code = 200  # 200表示云端存储了 node.js改写时若云端不存储则返回201
     return {"code": code, "data": chats, "message": ""}
@@ -871,6 +885,18 @@ def edit_chat():
     if data.get("context_have") is not None:
         context_have = data.get("context_have")
         user_info["chats"][id]["context_have"] = context_have
+
+    # 如果需要置顶该聊天
+    if data.get("sticky_number") is not None and id != user_info['default_chat_id']:
+        sticky_number = data.get("sticky_number")
+        if "chat_sticky_list" not in user_info:
+            user_info["chat_sticky_list"] = []
+        if sticky_number < 1:
+            user_info["chat_sticky_list"].remove(id)
+        else:
+            if id in user_info["chat_sticky_list"]:
+                user_info["chat_sticky_list"].remove(id)
+            user_info["chat_sticky_list"].insert(sticky_number, id)
 
     return {"code": 200, "msg": "修改成功"}
 

@@ -51,19 +51,25 @@ function toggle_chat_setting_dialog() {
         console.log(getSelectedChatInfo().name);
         $("#chat-assistant-prompt").val(getSelectedChatInfo()["assistant_prompt"]);
         $("#chat-context-size").val(getSelectedChatInfo()["context_size"] ? getSelectedChatInfo()["context_size"] : 5);
+        $("#chat-sticky-number").val(getSelectedChatInfo()["sticky_number"] ? getSelectedChatInfo()["sticky_number"] : 0);
         $("#chat-name").val(getSelectedChatInfo().name);
-
 
     } else {
         // 获取设置值
         console.log("关闭设置");
         let chat_info = getSelectedChatInfo();
         let original_name = chat_info["name"];
+        let original_chat_sticky_number = chat_info["sticky_number"];
         chat_info["assistant_prompt"] = $("#chat-assistant-prompt").val();
         chat_info["name"] = $("#chat-name").val();
         chat_info["context_size"] = parseInt($("#chat-context-size").val());
+        chat_info["sticky_number"] = parseInt($("#chat-sticky-number").val());
         editCurrentChat();
         if (original_name !== chat_info["name"]) {
+            // 刷新页面
+            location.reload();
+        }
+        if (original_chat_sticky_number !== chat_info["sticky_number"]) {
             // 刷新页面
             location.reload();
         }
