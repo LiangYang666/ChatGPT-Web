@@ -1,13 +1,16 @@
 import datetime
 import json
+import re
 import shutil
 import tempfile
+import urllib.parse
 
 import requests
 from flask import Flask, render_template, request, session, send_file, make_response
 import os
 import uuid
 from LRU_cache import LRUCache
+from log_util import init_logger
 import threading
 import pickle
 import asyncio
@@ -16,7 +19,18 @@ import yaml
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.urandom(24)
 
-with open("config.yaml", "r", encoding="utf-8") as f:
+DATA_DIR = "data"
+logger = init_logger(file_name=os.path.join(DATA_DIR, "running.log"), stdout=True)
+
+# 适配python3.6
+loop = asyncio.get_event_loop()
+
+
+def asyncio_run(func):
+    loop.run_until_complete(func)
+
+
+with open(os.path.join(DATA_DIR, "config.yaml"), "r", encoding="utf-8") as f:
     config = yaml.load(f, Loader=yaml.FullLoader)
     if 'HTTPS_PROXY' in config:
         if os.environ.get('HTTPS_PROXY') is None:  # 优先使用环境变量中的代理，若环境变量中没有代理，则使用配置文件中的代理
@@ -95,7 +109,7 @@ def get_response_from_ChatGPT_API(message_context, apikey,
             data = str(response)
 
     except Exception as e:
-        print(e)
+        logger.error(e)
         return str(e)
 
     return data
@@ -133,7 +147,7 @@ def get_message_context(message_history, have_chat_context, chat_with_history):
         message_context.append(message_history[-1])
         total += len(message_history[-1]['content'])
 
-    print(f"len(message_context): {len(message_context)} total: {total}", )
+    logger.info(f"len(message_context): {len(message_context)} total: {total}")
     return message_context
 
 
@@ -150,13 +164,6 @@ def handle_messages_get_response(message, apikey, message_history, have_chat_con
     message_context = get_message_context(message_history, have_chat_context, chat_with_history)
     response = get_response_from_ChatGPT_API(message_context, apikey)
     message_history.append({"role": "assistant", "content": response})
-    # 换行打印messages_history
-    # print("message_history:")
-    # for i, message in enumerate(message_history):
-    #     if message['role'] == 'user':
-    #         print(f"\t{i}:\t{message['role']}:\t\t{message['content']}")
-    #     else:
-    #         print(f"\t{i}:\t{message['role']}:\t{message['content']}")
 
     return response
 
@@ -189,7 +196,7 @@ def get_response_stream_generate_from_ChatGPT_API(message_context, apikey, messa
         "messages": message_context,
         "stream": True
     }
-    print("开始流式请求")
+    logger.info("开始流式请求")
     url = "https://api.openai.com/v1/chat/completions"
     # 请求接收流式数据 动态print
     try:
@@ -205,7 +212,8 @@ def get_response_stream_generate_from_ChatGPT_API(message_context, apikey, messa
                 line_str = str(line, encoding='utf-8')
                 if line_str.startswith("data:"):
                     if line_str.startswith("data: [DONE]"):
-                        asyncio.run(save_all_user_dict())
+                        asyncio_run(save_all_user_dict())
+                        logger.info("用户得到的回复内容：{}...".format(one_message["content"][:200]))
                         break
                     line_json = json.loads(line_str[5:])
                     if 'choices' in line_json:
@@ -240,7 +248,7 @@ def get_response_stream_generate_from_ChatGPT_API(message_context, apikey, messa
 
 def handle_messages_get_response_stream(message, apikey, message_history, have_chat_context, chat_with_history):
     message_history.append({"role": "user", "content": message})
-    asyncio.run(save_all_user_dict())
+    asyncio_run(save_all_user_dict())
     message_context = get_message_context(message_history, have_chat_context, chat_with_history)
     generate = get_response_stream_generate_from_ChatGPT_API(message_context, apikey, message_history)
     return generate
@@ -253,10 +261,11 @@ def check_session(current_session):
     :return: 当前session
     """
     if current_session.get('session_id') is not None:
-        print("existing session, session_id:\t", current_session.get('session_id'))
+        pass
+        logger.debug("existing session, session_id:\t{}".format(current_session.get('session_id')))
     else:
         current_session['session_id'] = uuid.uuid1()
-        print("new session, session_id:\t", current_session.get('session_id'))
+        logger.info("new session, session_id:\t{}".format(current_session.get('session_id')))
     return current_session['session_id']
 
 
@@ -315,7 +324,8 @@ def load_messages():
         user_info = get_user_info(session.get('user_id'))
         chat_id = user_info['selected_chat_id']
         messages_history = user_info['chats'][chat_id]['messages_history']
-        print(f"用户({session.get('user_id')})加载聊天记录，共{len(messages_history)}条记录")
+        chat_name = user_info['chats'][chat_id]['name']
+        logger.warning(f"用户({session.get('user_id')})加载“{chat_name}”对话的聊天记录，共{len(messages_history)}条记录")
     return {"code": code, "data": messages_history, "message": ""}
 
 
@@ -349,7 +359,7 @@ def download_user_dict_file():
     else:
         if request.headers.get("admin-password") != ADMIN_PASSWORD:
             return "管理员密码错误，无法下载"
-        response = make_response(send_file(USER_DICT_FILE, as_attachment=True))
+        response = make_response(send_file(os.path.join(DATA_DIR, USER_DICT_FILE), as_attachment=True))
         response.headers["Content-Disposition"] = f"attachment; filename={USER_DICT_FILE}"
         return response
 
@@ -359,9 +369,10 @@ def backup_user_dict_file():
     备份用户字典文件
     :return:
     """
-    backup_file_name = USER_DICT_FILE.replace(".pkl", f"_buckup_{datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')}.pkl")
-    shutil.copy(USER_DICT_FILE, backup_file_name)
-    print(f"备份用户字典文件{USER_DICT_FILE}为{backup_file_name}")
+    backup_file_name = USER_DICT_FILE.replace(".pkl",
+                                              f"_buckup_{datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')}.pkl")
+    shutil.copy(os.path.join(DATA_DIR, USER_DICT_FILE), os.path.join(DATA_DIR, backup_file_name))
+    logger.warning(f"备份用户字典文件{USER_DICT_FILE}为{backup_file_name}")
 
 
 @app.route('/uploadUserDictFile', methods=['POST'])
@@ -371,7 +382,7 @@ def upload_user_dict_file():
     :return:
     """
     check_session(session)
-    file = request.files.get('file')        # 获取上传的文件
+    file = request.files.get('file')  # 获取上传的文件
     if file:
         if request.headers.get("admin-password") is None:
             success, message = auth(request.headers, session)
@@ -411,7 +422,7 @@ def upload_user_dict_file():
                 else:
                     new_chat_id = str(uuid.uuid1())
                     user_info['chats'][new_chat_id] = upload_user_info['chats'][chat_id]
-            asyncio.run(save_all_user_dict())
+            asyncio_run(save_all_user_dict())
             return '个人用户记录合并完成'
         else:
             if request.headers.get("admin-password") != ADMIN_PASSWORD:
@@ -441,12 +452,14 @@ def upload_user_dict_file():
                 else:
                     for chat_id in upload_user_dict.get(user_id)['chats'].keys():
                         if all_user_dict.get(user_id)['chats'].get(chat_id) is None:
-                            all_user_dict.get(user_id)['chats'][chat_id] = upload_user_dict.get(user_id)['chats'][chat_id]
+                            all_user_dict.get(user_id)['chats'][chat_id] = upload_user_dict.get(user_id)['chats'][
+                                chat_id]
                         else:
                             new_chat_id = str(uuid.uuid1())
-                            all_user_dict.get(user_id)['chats'][new_chat_id] = upload_user_dict.get(user_id)['chats'][chat_id]
+                            all_user_dict.get(user_id)['chats'][new_chat_id] = upload_user_dict.get(user_id)['chats'][
+                                chat_id]
             lock.release()
-            asyncio.run(save_all_user_dict())
+            asyncio_run(save_all_user_dict())
             return '所有用户记录合并完成'
     else:
         return '文件上传失败'
@@ -460,6 +473,7 @@ def auth(request_head, session):
     :return: 验证结果
     """
     user_id = request_head.get("user-id")
+    user_id = urllib.parse.unquote(user_id)
     password = request_head.get("password")
     apikey = request_head.get("api-key")
 
@@ -494,13 +508,38 @@ def load_chats():
     else:
         user_info = get_user_info(session.get('user_id'))
         chats = []
-        for chat_id, chat_info in user_info['chats'].items():
+        chat_ids = []
+        # 如果置顶聊天列表不为空
+        if "chat_sticky_list" in user_info:
+            for chat_id in user_info['chat_sticky_list']:
+                if user_info['chats'].get(chat_id) is not None:
+                    chat_ids.append(chat_id)
+        
+        for chat_id in user_info['chats'].keys():
+            if chat_id not in chat_ids:
+                chat_ids.append(chat_id)
+
+        user_info['chat_sticky_list'] = chat_ids
+
+        for i, chat_id in enumerate(chat_ids):
+            chat_info = user_info['chats'][chat_id]
             if chat_info['chat_with_history']:
                 mode = "continuous"
             else:
                 mode = "normal"
+
+            if "assistant_prompt" in chat_info:
+                assistant_prompt = chat_info['assistant_prompt']
+            else:
+                assistant_prompt = ""
+            if "context_size" not in chat_info:
+                chat_info['context_size'] = 5
+            if "context_have" not in chat_info:
+                chat_info["context_have"] = 1
             chats.append(
                 {"id": chat_id, "name": chat_info['name'], "selected": chat_id == user_info['selected_chat_id'],
+                 "assistant_prompt": assistant_prompt, "context_size": chat_info['context_size'],
+                 "context_have": chat_info["context_have"], "sticky_number": i,
                  "mode": mode, "messages_total": len(user_info['chats'][chat_id]['messages_history'])})
     code = 200  # 200表示云端存储了 node.js改写时若云端不存储则返回201
     return {"code": code, "data": chats, "message": ""}
@@ -611,7 +650,7 @@ def return_message():
                "5. 相关设置也可以在设置面板中进行设置\n" \
                "6. 输入`帮助`查看帮助信息"
     if session.get('user_id') is None:  # 如果当前session未绑定用户
-        print("当前会话为首次请求，用户输入:\t", send_message)
+        logger.warning("当前会话为首次请求，用户输入:\t"+send_message)
         if send_message.startswith("new:"):
             user_id = send_message.split(":")[1]
             url_redirect["user_id"] = user_id
@@ -622,7 +661,7 @@ def return_message():
             lock.acquire()
             all_user_dict.put(user_id, user_dict)  # 默认普通对话
             lock.release()
-            print("创建新的用户id:\t", user_id)
+            logger.warning(f"创建新的用户id:\t{user_id}")
             session['user_id'] = user_id
             url_redirect["user_id"] = user_id
             return url_redirect
@@ -630,10 +669,11 @@ def return_message():
             user_id = send_message
             user_info = get_user_info(user_id)
             if user_info is None:
+                logger.warning(f"用户输入的id{user_id}不存在")
                 return "用户id不存在，请重新输入或创建新的用户id"
             else:
                 session['user_id'] = user_id
-                print("已有用户id:\t", user_id)
+                logger.warning(f"切换到已有用户id:\t{user_id}")
                 # 重定向到index
                 url_redirect["user_id"] = user_id
                 return url_redirect
@@ -642,11 +682,12 @@ def return_message():
             user_id = send_message.split(":")[1].strip()
             user_info = get_user_info(user_id)
             if user_info is None:
+                logger.warning(f"用户尝试切换的的id{user_id}不存在")
                 return "用户id不存在，请重新输入或创建新的用户id"
             else:
                 session['user_id'] = user_id
                 url_redirect["user_id"] = user_id
-                print("切换到已有用户id:\t", user_id)
+                logger.warning(f"切换到已有用户id:\t{user_id}")
                 # 重定向到index
                 return url_redirect
         elif send_message.startswith("new:"):
@@ -659,27 +700,28 @@ def return_message():
             lock.acquire()
             all_user_dict.put(user_id, user_dict)
             lock.release()
-            print("创建新的用户id:\t", user_id)
+            logger.warning(f"创建新的用户id:\t{user_id}")
             return url_redirect
         elif send_message.startswith("delete:"):  # 删除用户
             user_id = send_message.split(":")[1]
             if user_id != session.get('user_id'):
+                logger.warning(f"用户({session.get('user_id')})尝试删除用户id({user_id})")
                 return "只能删除当前会话的用户id"
             else:
                 lock.acquire()
                 all_user_dict.delete(user_id)
                 lock.release()
                 session['user_id'] = None
-                print("删除用户id:\t", user_id)
+                logger.warning(f"删除用户id:\t{user_id}成功")
                 # 异步存储all_user_dict
-                asyncio.run(save_all_user_dict())
+                asyncio_run(save_all_user_dict())
                 return url_redirect
         elif send_message.startswith("set_apikey:"):
             apikey = send_message.split(":")[1]
             user_info = get_user_info(session.get('user_id'))
             user_info['apikey'] = apikey
             # TODO 前端未存储
-            print("设置用户专属apikey:\t", apikey)
+            logger.info(f"设置用户专属apikey:\t{apikey}")
             return "设置用户专属apikey成功"
         elif send_message.startswith("rename_id:"):
             new_user_id = send_message.split(":")[1]
@@ -692,8 +734,8 @@ def return_message():
                 all_user_dict.put(new_user_id, user_info)
                 lock.release()
                 session['user_id'] = new_user_id
-                asyncio.run(save_all_user_dict())
-                print("修改用户id:\t", new_user_id)
+                asyncio_run(save_all_user_dict())
+                logger.warning(f"修改用户id:\t{new_user_id}")
                 url_redirect["user_id"] = new_user_id
                 return url_redirect
         elif send_message == "查余额":
@@ -702,7 +744,7 @@ def return_message():
             return get_balance(apikey)
         else:  # 处理聊天数据
             user_id = session.get('user_id')
-            print(f"用户({user_id})发送消息:{send_message}")
+            logger.info(f"用户({user_id})发送消息:{send_message}")
             user_info = get_user_info(user_id)
             chat_id = user_info['selected_chat_id']
             messages_history = user_info['chats'][chat_id]['messages_history']
@@ -723,16 +765,16 @@ def return_message():
                 response = get_response_from_ChatGPT_API(messages, apikey)
                 if save_message:
                     messages_history.append({"role": "assistant", "content": response})
-                asyncio.run(save_all_user_dict())
+                asyncio_run(save_all_user_dict())
 
-                print(f"用户({session.get('user_id')})得到的回复消息:{response[:40]}...")
+                logger.info(f"用户({session.get('user_id')})得到的回复消息:{response[:40]}...")
                 # 异步存储all_user_dict
-                asyncio.run(save_all_user_dict())
+                asyncio_run(save_all_user_dict())
                 return response
             else:
                 if save_message:
                     messages_history.append(messages[-1])
-                asyncio.run(save_all_user_dict())
+                asyncio_run(save_all_user_dict())
                 if not save_message:
                     messages_history = []
                 generate = get_response_stream_generate_from_ChatGPT_API(messages, apikey, messages_history,
@@ -748,9 +790,9 @@ async def save_all_user_dict():
     """
     await asyncio.sleep(0)
     lock.acquire()
-    with open(USER_DICT_FILE, "wb") as f:
+    with open(os.path.join(DATA_DIR, USER_DICT_FILE), "wb") as f:
         pickle.dump(all_user_dict, f)
-    # print("all_user_dict.pkl存储成功")
+    logger.debug("聊天j存储成功")
     lock.release()
 
 
@@ -787,7 +829,9 @@ def new_chat():
     # new_chat_id = str(uuid.uuid1())
     user_info['selected_chat_id'] = new_chat_id
     user_info['chats'][new_chat_id] = new_chat_dict(user_id, name, time)
-    print("新建聊天对象")
+    user_info["chat_sticky_list"].insert(1, new_chat_id)
+    logger.info("新建聊天对象")
+    asyncio_run(save_all_user_dict())
     return {"code": 200, "data": {"name": name, "id": new_chat_id, "selected": True,
                                   "messages_total": len(user_info['chats'][new_chat_id]['messages_history'])}}
 
@@ -800,42 +844,98 @@ def delete_history():
     """
     check_session(session)
     if not check_user_bind(session):
-        print("请先创建或输入已有用户id")
+        logger.info("请先创建或输入已有用户id")
         return {"code": -1, "msg": "请先创建或输入已有用户id"}
     user_info = get_user_info(session.get('user_id'))
     chat_id = user_info['selected_chat_id']
     default_chat_id = user_info['default_chat_id']
     if default_chat_id == chat_id:
-        print("清空历史记录")
+        logger.warning("清空历史记录")
         user_info["chats"][chat_id]['messages_history'] = user_info["chats"][chat_id]['messages_history'][:5]
     else:
-        print("删除聊天对话")
+        logger.warning("删除聊天对话")
         del user_info["chats"][chat_id]
     user_info['selected_chat_id'] = default_chat_id
     return "2"
 
 
+@app.route('/editChat', methods=['GET', 'POST'])
+def edit_chat():
+    check_session(session)
+    if not check_user_bind(session):
+        return {"code": -1, "msg": "请先创建或输入已有用户id"}
+    user_id = session.get('user_id')
+    user_info = get_user_info(user_id)
+    data = request.get_json()
+    id = data.get("id")
+    if id not in user_info["chats"]:
+        return {"code": -1, "msg": "需要编辑的聊天对话不存在"}
+    if data.get("name") is not None:
+        user_info["chats"][id]["name"] = data.get("name")
+    if data.get("context_size") is not None:
+        user_info["chats"][id]["context_size"] = data.get("context_size")  # 每次发送请求时，发送的上下文数量
+    if data.get("mode") is not None:
+        mode = data.get("mode")
+        if mode == "normal":
+            user_info["chats"][id]['chat_with_history'] = False
+        else:
+            user_info["chats"][id]['chat_with_history'] = True
+    if data.get("assistant_prompt") is not None:
+        assistant_prompt = data.get("assistant_prompt")
+        user_info["chats"][id]["assistant_prompt"] = assistant_prompt
+
+    if data.get("context_have") is not None:
+        context_have = data.get("context_have")
+        user_info["chats"][id]["context_have"] = context_have
+
+    # 如果需要置顶该聊天
+    if data.get("sticky_number") is not None and id != user_info['default_chat_id']:
+        sticky_number = data.get("sticky_number")
+        if "chat_sticky_list" not in user_info:
+            user_info["chat_sticky_list"] = []
+        if sticky_number < 1:
+            user_info["chat_sticky_list"].remove(id)
+        else:
+            if id in user_info["chat_sticky_list"]:
+                user_info["chat_sticky_list"].remove(id)
+            user_info["chat_sticky_list"].insert(sticky_number, id)
+
+    return {"code": 200, "msg": "修改成功"}
+
+
 def check_load_pickle():
     global all_user_dict
 
-    if os.path.exists(USER_DICT_FILE):
-        with open(USER_DICT_FILE, "rb") as pickle_file:
+    data_files = os.listdir(DATA_DIR)
+    have_move = False  # 匹配新版迁移，新版本的用户记录移到了data目录中
+    for file in data_files:
+        if re.match(r"all_user_dict_.*\.pkl", file):
+            have_move = True
+            break
+
+    if not have_move:
+        files = os.listdir()
+        for file in files:
+            if re.match(r"all_user_dict_.*\.pkl", file):
+                shutil.move(file, DATA_DIR)
+
+    if os.path.exists(os.path.join(DATA_DIR, USER_DICT_FILE)):
+        with open(os.path.join(DATA_DIR, USER_DICT_FILE), "rb") as pickle_file:
             all_user_dict = pickle.load(pickle_file)
             all_user_dict.change_capacity(USER_SAVE_MAX)
-        print(f"已加载上次存储的用户上下文，共有{len(all_user_dict)}用户, 分别是")
+        logger.warning(f"已加载上次存储的用户上下文，共有{len(all_user_dict)}用户, 分别是")
         for i, user_id in enumerate(list(all_user_dict.keys())):
-            print(f"{i} 用户id:{user_id}\t对话统计:\t", end="")
+            info = f"{i} 用户id:{user_id}\t对话统计:\t"
             user_info = all_user_dict.get(user_id)
             for chat_id in user_info['chats'].keys():
-                print(f"{user_info['chats'][chat_id]['name']}[{len(user_info['chats'][chat_id]['messages_history'])}] ",
-                      end="")
-            print()
-    elif os.path.exists("all_user_dict_v2.pkl"):  # 适配V2
-        print('检测到v2版本的上下文，将转换为v3版本')
-        with open("all_user_dict_v2.pkl", "rb") as pickle_file:
+                info += f"{user_info['chats'][chat_id]['name']}[{len(user_info['chats'][chat_id]['messages_history'])}] "
+            logger.info(info)
+    elif os.path.exists(os.path.join(DATA_DIR, "all_user_dict_v2.pkl")):  # 适配V2
+        logger.warning('检测到v2版本的上下文，将转换为v3版本')
+        with open(os.path.join(DATA_DIR, "all_user_dict_v2.pkl"), "rb") as pickle_file:
             all_user_dict = pickle.load(pickle_file)
             all_user_dict.change_capacity(USER_SAVE_MAX)
-        print("共有用户", len(all_user_dict), "个")
+        logger.warning(f"共有用户个{len(all_user_dict)}")
         for user_id in list(all_user_dict.keys()):
             user_info: dict = all_user_dict.get(user_id)
             for chat_id in user_info['chats'].keys():
@@ -846,14 +946,14 @@ def check_load_pickle():
                                 user_info['chats'][chat_id]['messages_history'][i]["role"] == "system":
                             user_info['chats'][chat_id]['messages_history'][i]["role"] = "web-system"
 
-        asyncio.run(save_all_user_dict())
+        asyncio_run(save_all_user_dict())
 
-    elif os.path.exists("all_user_dict.pkl"):  # 适配当出现这个时
-        print('检测到v1版本的上下文，将转换为v3版本')
-        with open("all_user_dict.pkl", "rb") as pickle_file:
+    elif os.path.exists(os.path.join(DATA_DIR, "all_user_dict.pkl")):  # 适配V1版本
+        logger.warning('检测到v1版本的上下文，将转换为v3版本')
+        with open(os.path.join(DATA_DIR, "all_user_dict.pkl"), "rb") as pickle_file:
             all_user_dict = pickle.load(pickle_file)
             all_user_dict.change_capacity(USER_SAVE_MAX)
-        print("共有用户", len(all_user_dict), "个")
+        logger.warning(f"共有用户{len(all_user_dict)}个")
         for user_id in list(all_user_dict.keys()):
             user_info: dict = all_user_dict.get(user_id)
             if "messages_history" in user_info:
@@ -863,26 +963,26 @@ def check_load_pickle():
                 user_dict['chats'][chat_id]['chat_with_history'] = user_info['chat_with_history']
                 user_dict['chats'][chat_id]['have_chat_context'] = user_info['have_chat_context']
                 all_user_dict.put(user_id, user_dict)  # 更新
-        asyncio.run(save_all_user_dict())
+        asyncio_run(save_all_user_dict())
     else:
-        with open(USER_DICT_FILE, "wb") as pickle_file:
+        with open(os.path.join(DATA_DIR, USER_DICT_FILE), "wb") as pickle_file:
             pickle.dump(all_user_dict, pickle_file)
-        print("未检测到上次存储的用户上下文，已创建新的用户上下文")
+        logger.warning("未检测到上次存储的用户上下文，已创建新的用户上下文")
 
     # 判断all_user_dict是否为None且时LRUCache的对象
     if all_user_dict is None or not isinstance(all_user_dict, LRUCache):
-        print("all_user_dict为空或不是LRUCache对象，已创建新的LRUCache对象")
+        logger.warning("all_user_dict为空或不是LRUCache对象，已创建新的LRUCache对象")
         all_user_dict = LRUCache(USER_SAVE_MAX)
 
 
 if __name__ == '__main__' or __name__ == 'main':
-    print("持久化存储文件路径为:", os.path.join(os.getcwd(), USER_DICT_FILE))
+    logger.warning("持久化存储文件路径为:{}".format(os.path.join(os.getcwd(), os.path.join(DATA_DIR, USER_DICT_FILE))))
     all_user_dict = LRUCache(USER_SAVE_MAX)
     check_load_pickle()
 
     if len(API_KEY) == 0:
         # 退出程序
-        print("请在openai官网注册账号，获取api_key填写至程序内或命令行参数中")
+        logger.error("请在openai官网注册账号，获取api_key填写至程序内或命令行参数中")
         exit()
     if os.getenv("DEPLOY_ON_ZEABUR") is None:
         app.run(host="0.0.0.0", port=PORT, debug=False)

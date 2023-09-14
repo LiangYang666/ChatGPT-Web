@@ -72,17 +72,47 @@
   > 12. 请注意，当设置密码或其它环境变量时请在设置后重新部署，每次部署后都会清除聊天记录，可先下载好已有用户记录再重新部署
 
   
-  
 </details>
 <details>
 <summary>2. 本地源代码部署（推荐，方便更新，需要有代理）</summary>
 
 > 前提：python3.7及以上运行环境
 > 1. 执行 `pip install -r requirements.txt`安装必要包
-> 2. 打开`config.yaml`文件，配置HTTPS_PROXY和OPENAI_API_KEY，相关细节已在配置文件中描述
+> 2. 打开`config.yaml`文件，配置HTTPS_PROXY和OPENAI_API_KEY，相关细节已在配置文件中描述，如果在境外部署无需代理，将HTTPS_PROXY行删除即可  
 > 5. 执行`python main.py`运行程序.若程序中未指定apikey也可以在终端执行时添加环境变量，如执行`OPANAI_API_KEY=sk-XXXX python main.py`来运行，其中`sk-XXXX`为你的apikey
 > 6. 打开本地浏览器访问`127.0.0.1:5000`,部署完成
-> 7. 关于更新，当代码更新时，使用git pull更新重新部署即可  
+> 7. 关于更新，当代码更新时，使用git pull更新重新部署即可
+> 8. 使用linux开机自启动部署
+> 执行`vim /etc/systemd/system/chatGpt.service`，编辑内容如下
+  ```bash
+    [Unit]
+    Description=my chat-gpt web
+    After=syslog.target network.target
+    Wants=network.target
+    
+    [Service]
+    Environment="ADMIN_PASSWORD=123456"
+    Environment="OPENAI_API_KEY=sk-***"
+    Environment="PASSWORD=123456"
+    Type=simple
+    User=nano
+    WorkingDirectory=/home/nano/Project/ChatGPT-Web
+    ExecStart=/usr/bin/python3 main.py
+    Restart= always
+    RestartSec=1min
+    
+    
+    [Install]
+    WantedBy=multi-user.target
+  ```
+  最后启动
+  ```bash
+  #启动
+  systemctl daemon-reload
+  systemctl start chatGpt.service
+  #设置为开机启动
+  systemctl enable chatGpt.service
+  ```
 </details>
 <details>
 <summary>3. Railway部署（无需代理，云部署，通过url随时随地访问）</summary>  
@@ -106,7 +136,7 @@
   > 9. 进入后如图，任何网络环境下只要输入url即可访问
   ![image](https://user-images.githubusercontent.com/38237931/228188680-4a802916-8719-448e-a532-94f275601990.png)
   > 10. 关于更新，当源仓库更新时，只需要将fork下来的仓库同步更新，railway将会自动部署更新的代码
-
+  
   
   
 </details>
