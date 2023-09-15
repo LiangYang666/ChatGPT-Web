@@ -70,7 +70,7 @@ project_info = "## ChatGPT 网页版    \n" \
 
 
 def get_response_from_ChatGPT_API(message_context, apikey,
-                                  model="gpt-3.5-turbo", temperature=0.9, presence_penalty=0, max_tokens=2000):
+                                  model="gpt-3.5-turbo-16k", temperature=0.9, presence_penalty=0, max_tokens=16000):
     """
     从ChatGPT API获取回复
     :param message_context: 上下文
